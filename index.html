@@ -1989,3 +1989,39 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
  renderAll();msg('พร้อมใช้งาน • เลือกวิชาแล้วชื่อวิชาจาง ๆ จะแสดงในช่องที่วางได้ทันที');
 })();
 </script>
+
+<!-- v45: selected-subject live preview + joint same-course classes + teacher combined display -->
+<style>
+.v44ghost{opacity:.30!important}.v44ghost.ok{color:#15803d!important}.v44ghost.joint{color:#2563eb!important;opacity:.42!important}
+</style>
+<script>
+/* Compatibility: old appended controllers call saveLocal(), while the base app uses save(). */
+var saveLocal = (typeof save === 'function') ? save : function(){};
+(function v45JointAndPreviewFix(){
+ const $=id=>document.getElementById(id);
+ const req=s=>Number(s?.t||0)+Number(s?.p||0);
+ function currentGroup(){return state.groups.find(g=>String(g.id)===String(state.currentGroupId))||group()}
+ function exactCount(sid,gid=state.currentGroupId){let n=0;for(const [k,l] of Object.entries(state.lessons||{})){const q=parseKey(k);if(String(q.pid)===String(state.activePlanId)&&String(q.gid)===String(gid)&&String(l?.subjectId)===String(sid))n++}return n}
+ used=(sid,gid=state.currentGroupId)=>exactCount(sid,gid);window.usedForGroup=used;
+ function sameSubjectTeacher(a,b){return !!(a&&b&&String(a.subjectId)===String(b.subjectId)&&String(a.teacherId||'')===String(b.teacherId||''))}
+ function existingJointAt(d,p,sid,tid,excludeGid){for(const [k,l] of Object.entries(state.lessons||{})){const q=parseKey(k);if(String(q.pid)!==String(state.activePlanId)||q.d!==d||q.p!==p||String(q.gid)===String(excludeGid))continue;if(String(l.subjectId)===String(sid)&&String(l.teacherId||'')===String(tid||''))return l}return null}
+ // Same exact subject + same teacher at same time is a joint class, not a teacher conflict.
+ conflictsFor=function(g,d,p,lesson,ignoreKey=null){const out=[];for(const [k,l] of Object.entries(state.lessons||{})){if(k===ignoreKey)continue;const q=parseKey(k);if(String(q.pid)!==String(state.activePlanId)||q.d!==d||q.p!==p)continue;if(String(q.gid)===String(g)){out.push('กลุ่มนักเรียนชน');continue}if(lesson?.teacherId&&String(l.teacherId||'')===String(lesson.teacherId||'')&&!sameSubjectTeacher(lesson,l))out.push(`ครู ${teacher(l.teacherId)?.name||''} ชน`)}return [...new Set(out)]};
+ // Preserve the currently selected subject across renderAll(). This fixes preview always reverting to the first subject.
+ const baseRenderPicks=renderPicks;
+ renderPicks=function(){const keepS=$('subjectPick')?.value||'';const keepT=$('teacherPick')?.value||'';const keepR=$('roomPick')?.value||'';baseRenderPicks();if(keepS&&[...($('subjectPick')?.options||[])].some(o=>o.value===keepS))$('subjectPick').value=keepS;if(keepT&&[...($('teacherPick')?.options||[])].some(o=>o.value===keepT))$('teacherPick').value=keepT;if(keepR&&[...($('roomPick')?.options||[])].some(o=>o.value===keepR))$('roomPick').value=keepR};
+ function clearGhosts(){document.querySelectorAll('#studentTable .v44ghost').forEach(x=>x.remove());document.querySelectorAll('#studentTable .v44-ghost-ok,#studentTable .v44-ghost-joint,#studentTable .v44-ghost-busy').forEach(x=>x.classList.remove('v44-ghost-ok','v44-ghost-joint','v44-ghost-busy'))}
+ function selectedLessonForPreview(s){const tid=$('teacherPick')?.value||s?.teacherId||'';let rid=$('roomPick')?.value||s?.roomId||'';return {planId:state.activePlanId,groupId:state.currentGroupId,subjectId:s?.id,teacherId:tid,roomId:rid}}
+ function paintPreview(){clearGhosts();const s=subject($('subjectPick')?.value),g=currentGroup(),table=$('studentTable');if(!s||!g||!table)return;const trial=selectedLessonForPreview(s);if(!trial.teacherId)return;table.querySelectorAll('.slot[data-key]').forEach(td=>{if(td.querySelector('.lesson')||/พักกลางวัน/.test(td.textContent||''))return;const q=parseKey(td.dataset.key);if(q.p===5)return;const act=(typeof isActivitySubject==='function'?isActivitySubject(s):/ลูกเสือ|กิจกรรม/.test(s.name||''));if((act&&!(q.d===2&&(q.p===7||q.p===8)))||(!act&&q.d===2&&(q.p===7||q.p===8))return;const j=existingJointAt(q.d,q.p,s.id,trial.teacherId,g.id);let busy=null;if(!j){for(const [k,l] of Object.entries(state.lessons||{})){const z=parseKey(k);if(String(z.pid)!==String(state.activePlanId)||z.d!==q.d||z.p!==q.p||String(z.gid)===String(g.id))continue;if(String(l.teacherId||'')===String(trial.teacherId||'')){busy=l;break}}}const ghost=document.createElement('div');ghost.className='v44ghost '+(j?'joint':busy?'busy':'ok');if(j){ghost.textContent=`${s.name} • เรียนรวมได้`;td.classList.add('v44-ghost-joint')}else if(busy){ghost.textContent=`${subject(busy.subjectId)?.name||'ครูไม่ว่าง'} • ครูไม่ว่าง`;td.classList.add('v44-ghost-busy')}else{ghost.textContent=s.name;td.classList.add('v44-ghost-ok')}td.appendChild(ghost)})}
+ // Manual placement: if another group already has the same subject with the same teacher, reuse that room automatically.
+ toggleSlot=function(k){const q=parseKey(k),g=state.groups.find(x=>String(x.id)===String(q.gid));if(!g)return;if(typeof isBlocked==='function'&&isBlocked(g,q.d,q.p))return;if(state.lessons[k]){delete state.lessons[k];save();renderAll();return}const s=subject($('subjectPick')?.value);if(!s)return alert('กรุณาเลือกรายวิชา');if(isActivitySubject(s)&&!activitySlot(q.d,q.p))return alert('วิชาลูกเสือ/กิจกรรมองค์การวิชาชีพ ลงได้เฉพาะวันพุธ คาบ 7–8');if(!isActivitySubject(s)&&activitySlot(q.d,q.p))return alert('วันพุธ คาบ 7–8 สงวนสำหรับลูกเสือ/กิจกรรมองค์การวิชาชีพ');if(exactCount(s.id,g.id)>=req(s))return alert('วิชานี้จัดครบจำนวนชั่วโมงแล้ว');const tid=$('teacherPick')?.value||s.teacherId||'';const joint=existingJointAt(q.d,q.p,s.id,tid,g.id);const rid=joint?.roomId||$('roomPick')?.value||s.roomId||'';const l={planId:state.activePlanId,groupId:g.id,subjectId:s.id,teacherId:tid,roomId:rid};const c=conflictsFor(g.id,q.d,q.p,l);if(c.length&&!confirm('คาบนี้ชน: '+c.join(', ')+'\nต้องการลงต่อหรือไม่?'))return;state.lessons[k]=l;save();renderAll()};
+ // Combine identical simultaneous classes in teacher view/PDF: one subject, one room, multiple groups on the last line.
+ const baseLessonHtml=lessonHtml;
+ lessonHtml=function(l,teacherMode=false){if(teacherMode&&Array.isArray(l?.groupIds)){const s=subject(l.subjectId),r=room(l.roomId);const names=l.groupIds.map(id=>groupShortName(state.groups.find(g=>String(g.id)===String(id)))).filter(Boolean);return `<div class="lesson teacher-lesson"><b>${esc(s?.code||'')}</b><br><span>${esc(r?.name||'')}</span><br><strong>${esc(names.join(' , '))}</strong></div>`}return baseLessonHtml(l,teacherMode)};
+ teacherLessonAt=function(tid,di,p){const raw=[];state.groups.forEach(g=>{const l=state.lessons[key(g.id,di,p)];if(l&&String(l.teacherId)===String(tid))raw.push({...l,groupId:g.id})});const out=[];for(const l of raw){let x=out.find(a=>String(a.subjectId)===String(l.subjectId)&&String(a.roomId||'')===String(l.roomId||'')&&String(a.teacherId||'')===String(l.teacherId||''));if(x)x.groupIds.push(l.groupId);else out.push({...l,groupIds:[l.groupId]})}return out};
+ // Repaint immediately on subject/teacher/room changes and after normal renders.
+ document.addEventListener('change',e=>{if(['subjectPick','teacherPick','roomPick','scheduleGroupPick'].includes(e.target?.id))setTimeout(paintPreview,0)},true);
+ const baseRenderAll45=renderAll;renderAll=function(){baseRenderAll45();setTimeout(paintPreview,0)};
+ renderAll();
+})();
+</script>
