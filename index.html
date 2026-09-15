@@ -150,6 +150,20 @@ input:focus,select:focus{outline:2px solid #bfdbfe!important;border-color:#60a5f
  .cloudbar{position:sticky!important;bottom:6px!important;margin-left:8px!important;margin-right:8px!important}
 }
 
+
+/* v14 Professional Color UI */
+:root{--nav:#102a43;--nav2:#163f66;--primary:#1769e0;--accent:#0ea5a4;--bg:#eef4f8;--surface:#ffffff;--line:#d7e2ea;--text:#102a43;--muted:#64748b;--success:#15803d;--danger:#c62828;--radius:16px}
+body{background:linear-gradient(135deg,#eef6fb 0%,#f8fbfd 48%,#eef8f6 100%)!important}
+header{background:linear-gradient(100deg,#102a43,#164e78)!important;color:white!important;border:0!important;box-shadow:0 8px 24px rgba(16,42,67,.18)!important;padding:14px 22px!important}
+header h1{font-size:22px!important;letter-spacing:.1px}.tag{background:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.22)!important}
+nav{background:linear-gradient(180deg,#102a43 0%,#173f62 100%)!important}
+nav button{font-weight:600!important;border-left:3px solid transparent!important}nav button.active,nav button:hover{background:linear-gradient(90deg,rgba(38,132,255,.35),rgba(14,165,164,.18))!important;border-left-color:#5eead4!important}
+main{background:transparent!important;padding:22px!important}.card{border:1px solid rgba(185,204,218,.8)!important;border-radius:16px!important;box-shadow:0 10px 28px rgba(30,64,90,.07)!important;padding:18px!important}.card h2{color:#123b5d!important;font-size:19px!important}
+.homeHero{border:0!important;border-radius:20px!important;background:linear-gradient(120deg,#fff 0%,#eef8ff 62%,#eafaf6 100%)!important;box-shadow:0 14px 36px rgba(30,64,90,.09)!important;padding:26px!important}.homeHero img{width:84px!important;height:84px!important}.module{border:1px solid #d9e6ee!important;border-radius:16px!important;box-shadow:0 8px 22px rgba(30,64,90,.06)!important;transition:.2s}.module:hover{transform:translateY(-2px);box-shadow:0 13px 30px rgba(30,64,90,.10)!important}.module:nth-child(3n+1){border-top:4px solid #1769e0!important}.module:nth-child(3n+2){border-top:4px solid #0ea5a4!important}.module:nth-child(3n){border-top:4px solid #f59e0b!important}
+.btn{border-radius:10px!important}.btn.primary{background:linear-gradient(135deg,#1769e0,#2684ff)!important}.btn.ok{background:linear-gradient(135deg,#0f9f7f,#10b981)!important;color:#fff!important}.btn.light{background:#f5f9fc!important}.subject,.teacher-card{border-radius:13px!important}.progress{background:#e8f2ff;padding:5px 9px;border-radius:999px!important}
+input,select{border-radius:10px!important}.notice{border-left:4px solid #f59e0b!important}.notice.good{border-left-color:#10b981!important}.errorbox{border-left:4px solid #dc2626!important}
+.excel-info{font-size:11px!important}.excel-info>div{white-space:normal!important;line-height:1.25!important}.excel-identity{min-height:132px!important}.excel-top{grid-template-columns:270px 1fr!important}
+@media print{.excel-sheet{zoom:.82}.excel-top{grid-template-columns:23% 77%!important}.excel-identity{min-height:100px!important}.excel-info{font-size:9px!important}.excel-info>div:first-child{font-size:12px!important}.excel-courses{font-size:7px!important}.excel-courses th,.excel-courses td{height:14px!important}.excel-schedule{font-size:8px!important}.excel-schedule tr:nth-child(n+3) td,.excel-schedule tr:nth-child(n+3) th{height:43px!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
@@ -181,6 +195,8 @@ input:focus,select:focus{outline:2px solid #bfdbfe!important;border-color:#60a5f
 <label>ระดับ<select id="level"><option>ปวช.</option><option>ปวส.</option></select></label>
 <label>ชั้นปี<select id="year"><option>1</option><option>2</option><option>3</option></select></label>
 <label>ห้อง / กลุ่ม<input id="group" value="ชฟ.1/1 กลุ่ม 1"></label>
+<label>รหัสกลุ่มเรียน<input id="groupCode" placeholder="เช่น 69ชฟ.1/1-1"></label>
+<label>ครูที่ปรึกษา<input id="advisor" placeholder="ชื่อครูที่ปรึกษา"></label>
 <label>ภาคเรียน<input id="term" value="1/2569"></label>
 </div><div class="actions"><button class="btn primary" id="saveClass">บันทึกชั้นเรียน</button></div></div>
 <div class="card"><h2>รายวิชาตามแผนการเรียน</h2><p class="muted">ท = ทฤษฎี, ป = ปฏิบัติ, น = หน่วยกิต และระบบใช้ ท+ป เป็นจำนวนคาบต่อสัปดาห์</p>
@@ -232,8 +248,8 @@ function demo(){
   ],
   rooms:[{id:r1,name:'636'},{id:r2,name:'634'},{id:r3,name:'637'}],
   groups:[
-   {id:g1,level:'ปวช.',year:'1',name:'ชฟ.1/1 กลุ่ม 1'},
-   {id:g2,level:'ปวส.',year:'1',name:'ชฟส.1/1 กลุ่ม 1'}
+   {id:g1,level:'ปวช.',year:'1',name:'ชฟ.1/1 กลุ่ม 1',groupCode:'69ชฟ.1/1-1',advisor:'นายชัชวาล รักษาทรัพย์'},
+   {id:g2,level:'ปวส.',year:'1',name:'ชฟส.1/1 กลุ่ม 1',groupCode:'69ชฟส.1/1-1',advisor:'ครูตัวอย่าง 2'}
   ],
   subjects:[
    {id:s1,groupId:g1,code:'20104-2002',name:'วงจรไฟฟ้ากระแสตรง',t:1,p:3,n:2,teacherId:t1,roomId:r1},
@@ -326,7 +342,7 @@ function renderPicks(){
  teacherPick.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
  teacherView.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
  roomPick.innerHTML=state.rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
- level.value=g.level;year.value=g.year;group.value=g.name;term.value=plan().term;groupShow.value=g.name;
+ level.value=g.level;year.value=g.year;group.value=g.name;groupCode.value=g.groupCode||'';advisor.value=g.advisor||'';term.value=plan().term;groupShow.value=g.name;
 }
 function teacherLoad(tid){
  let inside=0,outside=0;
@@ -413,12 +429,12 @@ function renderPreview(mode=window.previewMode||'student'){
  window.previewMode=mode;let g=group(),tid=teacherView.value||state.teachers[0]?.id;
  let who=mode==='student'?g.name:teacher(tid)?.name||'';
  let sched='';days.forEach((d,di)=>{let cells='';for(let p=1;p<=12;p++){let l=state.lessons[key(g.id,di,p)],s=l&&subject(l.subjectId);let blocked=p===5,act=di===2&&(p===6||p===7);cells+=`<td class="${blocked?'locked':act?'activity':''}">${blocked?'พักกลางวัน':act?(g.level==='ปวช.'?'ลูกเสือ':'กิจกรรม'):(s?`<b>${esc(s.code)}</b><br>${esc(s.name)}<br>${esc(teacher(l.teacherId)?.name)}<br>${esc(room(l.roomId)?.name)}`:'')}</td>`}sched+=`<tr><th colspan="3">วัน${d}</th><td class="assembly-cell"></td>${cells}</tr>`});
- let subs=state.subjects.filter(s=>s.groupId===g.id).slice(0,8);let course='';for(let i=0;i<4;i++){let a=subs[i],b=subs[i+4];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`}
- preview.innerHTML=`<div class="excel-sheet"><div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน ${esc(plan().term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} ${esc(who)}</div><div>แผนกวิชา ช่างไฟฟ้ากำลัง</div></div></div><table class="excel-courses"><tr><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th></tr>${course}</table></div><table class="excel-schedule"><tr><th colspan="3">เวลา</th><th>07:45-08:00</th>${periodTimes.map(t=>`<th>${t}</th>`).join('')}</tr><tr><th colspan="3">วัน/คาบ</th><th>กิจกรรมหน้าเสาธง</th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table></div>`;
+ let subs=state.subjects.filter(s=>s.groupId===g.id);let course='';let half=Math.ceil(subs.length/2)||1;for(let i=0;i<half;i++){let a=subs[i],b=subs[i+half];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`}
+ preview.innerHTML=`<div class="excel-sheet"><div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน ${esc(plan().term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} ${esc(who)}</div>${mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:''}<div>แผนกวิชา ช่างไฟฟ้ากำลัง</div></div></div><table class="excel-courses"><tr><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th></tr>${course}</table></div><table class="excel-schedule"><tr><th colspan="3">เวลา</th><th>07:45-08:00</th>${periodTimes.map(t=>`<th>${t}</th>`).join('')}</tr><tr><th colspan="3">วัน/คาบ</th><th>กิจกรรมหน้าเสาธง</th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table></div>`;
 }
 function exportExcel(){
  if(typeof XLSX==='undefined'){alert('กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อใช้ Export Excel');return}
- let g=group(),aoa=[['วิทยาลัยเทคนิคปากช่อง'],[`ภาคเรียน ${plan().term}`],[`ชั้นเรียน ${g.name}`],['วัน/คาบ','กิจกรรมหน้าเสาธง',...Array.from({length:12},(_,i)=>`${i+1} ${periodTimes[i]}`)]];
+ let g=group(),aoa=[['วิทยาลัยเทคนิคปากช่อง'],[`ภาคเรียน ${plan().term}`],[`ชั้นเรียน ${g.name}`],[`รหัสกลุ่มเรียน ${g.groupCode||'-'}`],[`ครูที่ปรึกษา ${g.advisor||'-'}`],['วัน/คาบ','กิจกรรมหน้าเสาธง',...Array.from({length:12},(_,i)=>`${i+1} ${periodTimes[i]}`)]];
  days.forEach((d,di)=>{let row=[d,'กิจกรรมหน้าเสาธง'];for(let p=1;p<=12;p++){let l=state.lessons[key(g.id,di,p)],s=l&&subject(l.subjectId);row.push(p===5?'พักกลางวัน':(di===2&&(p===6||p===7))?(g.level==='ปวช.'?'ลูกเสือ':'กิจกรรม'):(s?`${s.code}
 ${s.name}
 ${teacher(l.teacherId)?.name}
@@ -429,7 +445,7 @@ function renderAll(){renderSubjects();renderPicks();renderLists();renderStudent(
 function goPage(id){let b=[...nav.querySelectorAll('button')].find(x=>x.dataset.page===id);if(b)b.click()}
 nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(b.dataset.page).classList.add('active');renderAll()});
 saveClass.onclick=()=>{
- let g=group();g.level=level.value;g.year=year.value;g.name=group.value.trim()||g.name;plan().term=term.value.trim()||plan().term;renderAll();alert('บันทึกข้อมูลห้องแล้ว')
+ let g=group();g.level=level.value;g.year=year.value;g.name=group.value.trim()||g.name;g.groupCode=groupCode.value.trim();g.advisor=advisor.value.trim();plan().term=term.value.trim()||plan().term;renderAll();alert('บันทึกข้อมูลห้องแล้ว')
 };
 addSubject.onclick=()=>{
  let code=prompt('รหัสวิชา','20104-0000');if(code===null)return;let name=prompt('ชื่อรายวิชา');if(!name)return;
@@ -458,7 +474,7 @@ if(firstCard){
  groupSelect.onchange=()=>{state.currentGroupId=groupSelect.value;renderAll();refreshSelectors()};
  newPlanBtn.onclick=()=>{let name=prompt('ชื่อแผนใหม่',`แผนใหม่ ${new Date().toLocaleDateString('th-TH')}`);if(!name)return;let id=uid();state.plans.push({id,name,term:plan().term});state.activePlanId=id;renderAll();refreshSelectors()};
  copyPlanBtn.onclick=()=>{let old=state.activePlanId,name=prompt('ชื่อแผนสำเนา',plan().name+' สำเนา');if(!name)return;let id=uid();state.plans.push({id,name,term:plan().term});for(const [k,l] of Object.entries({...state.lessons})){let q=parseKey(k);if(q.pid===old)state.lessons[`${id}|${q.gid}|${q.d}|${q.p}`]={...l,planId:id}}state.activePlanId=id;renderAll();refreshSelectors()};
- newGroupBtn.onclick=()=>{let lev=prompt('ระดับ ปวช. หรือ ปวส.','ปวช.');if(!lev)return;let name=prompt('ชื่อห้อง/กลุ่ม','ชฟ.1/1 กลุ่ม 1');if(!name)return;let id=uid();state.groups.push({id,level:lev,year:'1',name});state.currentGroupId=id;renderAll();refreshSelectors()};
+ newGroupBtn.onclick=()=>{let lev=prompt('ระดับ ปวช. หรือ ปวส.','ปวช.');if(!lev)return;let name=prompt('ชื่อห้อง/กลุ่ม','ชฟ.1/1 กลุ่ม 1');if(!name)return;let id=uid();state.groups.push({id,level:lev,year:'1',name,groupCode:'',advisor:''});state.currentGroupId=id;renderAll();refreshSelectors()};
  backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='college-schedule-backup.json';a.click();URL.revokeObjectURL(a.href)};
  restoreBtn.onclick=()=>restoreFile.click();
  restoreFile.onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);renderAll();refreshSelectors();alert('นำเข้าข้อมูลแล้ว')}catch(err){alert('ไฟล์ JSON ไม่ถูกต้อง')}};r.readAsText(f)};
