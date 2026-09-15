@@ -1,5 +1,5 @@
-Teaching Schedule v5 - Excel Template Style
-1) Upload index.html to the root of GitHub repository teaching-schedule and replace the old file.
-2) Commit changes and wait for GitHub Pages deployment.
-3) Open the same Pages URL. The top badge should say Excel Template v5.
-4) The Preview/Print page follows the uploaded Excel schedule layout and includes Export Excel (.xlsx).
+Teaching Schedule v7 - Excel-faithful preview
+- Uses the actual college emblem extracted from the uploaded Excel template.
+- Header and course table share the exact same overall width as the schedule grid.
+- Preview uses thin black Excel-like cell borders and compact spreadsheet typography.
+Upload index.html AND image1.png together to the root of the GitHub Pages repository.

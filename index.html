@@ -31,11 +31,29 @@ table{border-collapse:collapse;width:100%;min-width:1050px;table-layout:fixed}th
 .schedule-paper{min-width:1180px;border:2px solid #111}.schedule-paper th,.schedule-paper td{border:1px solid #111;color:#111;background:#fff}.schedule-paper thead th{height:46px;padding:2px;font-size:9px}.schedule-paper .period-no{font-size:12px;font-weight:800}.schedule-paper .period-time{font-size:8px;font-weight:400;margin-top:2px}.schedule-paper .day{width:70px;font-size:12px}.schedule-paper .assembly{width:72px;background:#fafafa;font-size:9px;line-height:1.2}.schedule-paper td{height:76px}.schedule-paper .lesson{display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:9px}.schedule-paper .lesson b{font-size:9px}.schedule-paper .slot.dragover{box-shadow:inset 0 0 0 3px #111}.schedule-paper .slot[draggable=true]{cursor:grab}
 .print-foot{display:flex;justify-content:space-between;gap:20px;margin-top:8px;font-size:10px}.sign{width:30%;text-align:center;line-height:1.7}.legend{font-size:9px;text-align:left}
 @media print{body{background:#fff}.preview{min-width:0;width:100%;padding:0}.paper-head{border-width:1px}.schedule-paper{min-width:0;width:100%;border-width:1px}.schedule-paper th,.schedule-paper td{height:auto;min-height:0;padding:1px}.schedule-paper td{height:57px}.paper-brand{grid-template-columns:75px 1fr 210px}.paper-logo{width:58px;height:58px}.paper-school .th{font-size:17px}}
+
+/* v6 exact reconstruction from uploaded Excel template */
+.excel-sheet{width:1180px;margin:0 auto;background:#fff;color:#000;font-family:"TH Sarabun New","Sarabun",Arial,sans-serif;padding:0 8px 12px}.excel-sheet table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:0}.excel-courses{font-size:11px;margin-bottom:0}.excel-courses th,.excel-courses td{border:0;height:20px;padding:1px 3px;text-align:center}.excel-courses th{font-weight:700;background:#fff}.excel-info{width:31%;font-size:14px;line-height:1.45;margin:4px 0 2px}.excel-info>div{height:22px;white-space:nowrap}.excel-info>div:first-child{font-size:16px;font-weight:700}.excel-schedule{border:1px solid #000;font-size:10px}.excel-schedule th,.excel-schedule td{border:1px solid #000;padding:1px;text-align:center;background:#fff}.excel-schedule tr:first-child th{height:25px;font-weight:400}.excel-schedule tr:nth-child(2) th{height:24px}.excel-schedule tr:nth-child(n+3) td,.excel-schedule tr:nth-child(n+3) th{height:66px}.excel-schedule th:nth-child(-n+3){width:2.9%}.excel-schedule .assembly-head,.excel-schedule .assembly-cell{width:7.75%}.excel-schedule .vertical{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px}.excel-schedule td{font-size:9px;line-height:1.15}.excel-sign{display:grid;grid-template-columns:1.15fr 1.15fr 1.15fr 1fr;gap:12px;text-align:center;font-size:12px;line-height:1.45;margin-top:30px}.preview{background:#fff;padding:0;border:0;min-width:1180px}
+@media print{.excel-sheet{width:100%;padding:0}.excel-sign{margin-top:18px}.preview{min-width:0}.excel-schedule tr:nth-child(n+3) td,.excel-schedule tr:nth-child(n+3) th{height:48px}}
+
+/* v7: Excel-faithful paper preview */
+.excel-sheet{width:1180px;padding:0;margin:0 auto;font-family:Arial,"TH Sarabun New","Sarabun",sans-serif;font-size:11px}
+.excel-top{width:100%;display:grid;grid-template-columns:235px 1fr;align-items:stretch;border-bottom:0;margin:0}
+.excel-identity{display:grid;grid-template-columns:72px 1fr;align-items:center;padding:4px 6px 4px 2px;min-height:116px}
+.excel-logo-img{width:62px;height:62px;object-fit:contain;justify-self:center}
+.excel-info{width:auto!important;margin:0!important;font-size:12px!important;line-height:1.22!important;display:flex;flex-direction:column;justify-content:center}
+.excel-info>div{height:auto!important;min-height:17px;white-space:nowrap}.excel-info>div:first-child{font-size:15px!important;font-weight:700}
+.excel-courses{width:100%!important;margin:0!important;font-family:Arial,"TH Sarabun New","Sarabun",sans-serif;font-size:9px!important}
+.excel-courses th,.excel-courses td{border:1px solid #000!important;height:20px!important;padding:1px 2px!important;background:#fff!important;font-weight:400}
+.excel-courses th{font-weight:700}.excel-schedule{width:100%!important;border:1px solid #000!important;font-family:Arial,"TH Sarabun New","Sarabun",sans-serif}
+.excel-schedule th,.excel-schedule td{border:1px solid #000!important;font-weight:400}.excel-schedule tr:nth-child(n+3) td,.excel-schedule tr:nth-child(n+3) th{height:64px}
+.excel-sign{width:100%;grid-template-columns:repeat(4,1fr);font-size:11px;margin-top:24px}
+@media print{.excel-sheet{width:100%}.excel-top{grid-template-columns:20% 80%}.excel-logo-img{width:50px;height:50px}.excel-identity{min-height:92px}.excel-courses th,.excel-courses td{height:16px!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
-<header><h1>ระบบจัดตารางเรียนและตารางสอน</h1><span class="tag">วิทยาลัยเทคนิคปากช่อง • Excel Template v5</span></header>
+<header><h1>ระบบจัดตารางเรียนและตารางสอน</h1><span class="tag">วิทยาลัยเทคนิคปากช่อง • Excel-faithful v7</span></header>
 <div class="app">
 <nav id="nav">
 <button data-page="planPage" class="active">1. แผนการเรียน</button>
@@ -123,14 +141,15 @@ function autoSubject(s){let need=(s.t+s.p)-used(s.id);if(need<=0)return;let free
 function renderPreview(mode=window.previewMode||'student'){
  window.previewMode=mode;let teacher=teacherView.value||state.teachers[0]||'';
  let who=mode==='student'?state.group:teacher;
- let courseRows=state.subjects.map(x=>`<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td></tr>`).join('');
- preview.innerHTML=`<div style="border:2px solid #111;background:#fff;color:#111;padding:8px 10px 0">
- <div style="text-align:center;font-size:20px;font-weight:800">วิทยาลัยเทคนิคปากช่อง</div>
- <div style="text-align:center;font-size:15px;font-weight:700">ภาคเรียน ${esc(state.term)}</div>
- <div style="font-size:12px;line-height:1.8;margin-top:4px"><b>${mode==='student'?'ชั้นเรียน':'ผู้สอน'}</b> ${esc(who)} &nbsp;&nbsp; <b>ระดับ</b> ${esc(state.level)} ชั้นปีที่ ${esc(state.year)}<br><b>วุฒิการศึกษา</b> ............................................ &nbsp;&nbsp; <b>แผนกวิชา</b> ช่างไฟฟ้ากำลัง &nbsp;&nbsp; <b>หน้าที่พิเศษ</b> ............................................</div>
- <div class="tablewrap" style="margin-top:5px"><table class="smalltbl" style="min-width:800px"><thead><tr><th>รหัสวิชา</th><th>ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th></tr></thead><tbody>${courseRows}</tbody></table></div>
- </div>${mode==='student'?makeTable():makeTable(teacher)}
- <div class="print-foot"><div class="sign">ลงชื่อ ................................................<br>(................................................)</div><div class="sign">ลงชื่อ ................................................<br>(................................................)<br>หัวหน้าแผนกวิชา</div><div class="sign">ลงชื่อ ................................................<br>(................................................)<br>รองผู้อำนวยการฝ่ายวิชาการ</div></div>`
+ let subs=state.subjects.slice(0,8), left=subs.slice(0,4), right=subs.slice(4,8);
+ const cr=(a,i)=>{let x=a[i];return x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`};
+ let course='';for(let i=0;i<4;i++)course+=`<tr>${cr(left,i)}${cr(right,i)}</tr>`;
+ let sched='';days.forEach((d,di)=>{let cells='';for(let p=1;p<=12;p++){let l=state.lessons[`${di}-${p}`],sub=l&&subjectById(l.subjectId);cells+=`<td>${sub?`<b>${esc(sub.code)}</b><br>${esc(sub.name)}<br>${esc(l.teacher)}<br>${esc(l.room)}`:''}</td>`}sched+=`<tr><th colspan="3">วัน${d}</th><td class="assembly-cell"></td>${cells}</tr>`});
+ preview.innerHTML=`<div class="excel-sheet">
+ <div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png" alt="ตราวิทยาลัย"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน&nbsp;&nbsp;${esc(state.term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} …${esc(who)}……</div><div>วุฒิการศึกษา ............................................</div><div>แผนกวิชา ช่างไฟฟ้ากำลัง</div><div>หน้าที่พิเศษ .................................................</div></div></div><table class="excel-courses"><tr><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th></tr>${course}<tr><td></td><td colspan="4">รวม</td><td></td><td></td><td></td><td></td><td></td><td colspan="4"></td><td></td><td></td><td></td><td></td></tr></table></div>
+ <table class="excel-schedule"><tr><th colspan="3">เวลา</th><th class="assembly-head">07:45-08:00</th>${periodTimes.map(t=>`<th>${t}</th>`).join('')}</tr><tr><th colspan="3">วัน/คาบ</th><th class="assembly-head vertical">กิจกรรมหน้าเสาธง</th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table>
+ <div class="excel-sign"><div>ลงชื่อ......................................................<br>(...............................................................)<br>หัวหน้าแผนกวิชา</div><div>ลงชื่อ......................................................<br>(นายธีรชากร&nbsp;&nbsp;วิเศษฤทธิ์)<br>หัวหน้างานพัฒนาหลักสูตรฯ</div><div>ลงชื่อ......................................................<br>(นายนพดล&nbsp;&nbsp;ลือนาม)<br>รองผู้อำนวยการฝ่ายวิชาการ</div><div>ลงชื่อ................................................<br>(นายสุริยา&nbsp;&nbsp;พงษ์ศิริรักษ์)<br>ผู้อำนวยการ</div></div>
+ </div>`
 }
 function exportExcel(){
  if(typeof XLSX==='undefined'){alert('ไม่สามารถโหลดระบบ Excel ได้ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่');return}
