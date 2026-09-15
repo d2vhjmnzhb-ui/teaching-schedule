@@ -1932,3 +1932,60 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   say('ปุ่ม Auto พร้อมใช้งาน • ทำงานเฉพาะห้อง/กลุ่มที่เลือก');
 })();
 </script>
+
+<style>
+/* v44: availability preview — keep original UI, only add faint text inside existing cells */
+.slot.v44-ghost-ok{background:rgba(34,197,94,.055)!important}
+.slot.v44-ghost-joint{background:rgba(14,165,233,.07)!important}
+.slot.v44-ghost-busy{background:rgba(239,68,68,.045)!important}
+.v44ghost{font-size:9px;line-height:1.15;font-weight:700;opacity:.42;text-align:center;pointer-events:none;padding:2px}
+.v44ghost.ok{color:#16835b}.v44ghost.joint{color:#1677a8;opacity:.55}.v44ghost.busy{color:#b54747;opacity:.42}
+#v44Msg{margin-top:8px;font-size:13px;line-height:1.45}
+#autoOne.v44busy,#autoAll.v44busy,#clearSchedule.v44busy{opacity:.62;transform:scale(.98);pointer-events:none}
+</style>
+<script>
+(function v44FinalScheduleController(){
+ const $=id=>document.getElementById(id), req=s=>Number(s?.t||0)+Number(s?.p||0);
+ const gid=()=>state.currentGroupId;
+ function count(sid,g=gid()){
+   let n=0;for(const [k,l] of Object.entries(state.lessons||{})){const q=parseKey(k);if(String(q.pid)===String(state.activePlanId)&&String(q.gid)===String(g)&&String(l?.subjectId)===String(sid))n++}return n;
+ }
+ used=(sid,g=gid())=>count(sid,g);window.usedForGroup=used;window.v44Count=count;
+ function subjects(){const g=group();let a=planSubjects().slice();if(g?.groupType==='backlog'&&Array.isArray(g.allowedSubjectIds)&&g.allowedSubjectIds.length)a=a.filter(s=>g.allowedSubjectIds.includes(s.id));return a}
+ function msg(t,bad=false){let n=$('v44Msg'),a=$('v43Diag')||$('v42ActionMsg')||$('v40ScopeNote')||$('clearSchedule');if(!n&&a){n=document.createElement('div');n.id='v44Msg';a.insertAdjacentElement('afterend',n)}if(n){n.className=bad?'errorbox':'notice';n.textContent=t}}
+ function sameCode(a,b){const sa=subject(a?.subjectId),sb=subject(b?.subjectId);return !!(sa&&sb&&String(sa.code||'').trim()===String(sb.code||'').trim())}
+ function joint(a,b){return !!(a&&b&&sameCode(a,b)&&String(a.teacherId||'')===String(b.teacherId||'')&&String(a.roomId||'')===String(b.roomId||''))}
+ conflictsFor=function(g,d,p,lesson,ignoreKey=null){const out=[];for(const [k,l] of Object.entries(state.lessons||{})){if(k===ignoreKey)continue;const q=parseKey(k);if(String(q.pid)!==String(state.activePlanId)||q.d!==d||q.p!==p)continue;if(String(q.gid)===String(g)){out.push('กลุ่มนักเรียนชน');continue}if(lesson.teacherId&&String(l.teacherId)===String(lesson.teacherId)&&!joint(lesson,l))out.push(`ครู ${teacher(l.teacherId)?.name||''} ชน`)}return [...new Set(out)]};
+ function teacherRooms(tid){return (state.rooms||[]).filter(r=>String(r.teacherId||'')===String(tid||''))}
+ function preferredRoom(s,tid){
+   const allowed=teacherRooms(tid);if(!allowed.length)return null;
+   const scores={};for(const l of Object.values(state.lessons||{})){const os=subject(l.subjectId);if(!os||String(os.code||'')!==String(s.code||'')||String(l.teacherId||'')!==String(tid))continue;if(allowed.some(r=>r.id===l.roomId))scores[l.roomId]=(scores[l.roomId]||0)+1}
+   const best=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0]?.[0];return allowed.find(r=>r.id===best)||allowed.find(r=>r.id===s.roomId)||allowed[0];
+ }
+ function trialFor(s){const tid=s?.teacherId||$('teacherPick')?.value||'';if(!tid)return {error:'วิชานี้ยังไม่ได้กำหนดครูผู้สอน'};const r=preferredRoom(s,tid);if(!r)return {error:`ครู ${teacher(tid)?.name||''} ยังไม่ได้กำหนดห้องเรียน`};s.roomId=r.id;return {planId:state.activePlanId,groupId:gid(),subjectId:s.id,teacherId:tid,roomId:r.id}}
+ function blocked(d,p,s){if(p===5)return true;const act=typeof isActivitySubject==='function'?isActivitySubject(s):/ลูกเสือ|กิจกรรม/.test(s?.name||'');return act?!(d===2&&(p===7||p===8)):(d===2&&(p===7||p===8))}
+ function can(g,d,p,t,s){if(blocked(d,p,s)||state.lessons[key(g,d,p)])return false;return conflictsFor(g,d,p,t).length===0}
+ function place(s){const g=gid(),need=req(s);let remain=need-count(s.id,g);if(remain<=0)return {added:0,complete:true};const t=trialFor(s);if(t.error)return {added:0,error:t.error};let added=0;const act=typeof isActivitySubject==='function'?isActivitySubject(s):/ลูกเสือ|กิจกรรม/.test(s?.name||'');if(act){for(const p of [7,8])if(remain&&can(g,2,p,t,s)){state.lessons[key(g,2,p)]={...t};remain--;added++}return {added,complete:!remain}}
+   // First join an existing same-code/same-teacher/same-room class where possible.
+   for(const [k,l] of Object.entries(state.lessons||{})){if(!remain)break;const q=parseKey(k);if(String(q.pid)!==String(state.activePlanId)||String(q.gid)===String(g)||!joint(t,l))continue;if(!state.lessons[key(g,q.d,q.p)]&&!blocked(q.d,q.p,s)){state.lessons[key(g,q.d,q.p)]={...t};remain--;added++}}
+   const starts=[1,6,2,3,4,7,8,10,11,12,9];while(remain>0){let best=null;for(let d=0;d<5;d++)for(const p of starts)for(let len=Math.min(4,remain);len>=1;len--){if(p+len-1>12)continue;const ps=Array.from({length:len},(_,i)=>p+i);if(ps.some(x=>!can(g,d,x,t,s)))continue;let sc=len*1000+(p===1?1000:p===6?850:p<=4?520:p<=8?350:p===9?-1200:-600)-ps.filter(x=>x>=9).length*700;if(!best||sc>best.sc)best={d,p,len,sc}}if(!best)break;for(let i=0;i<best.len;i++){state.lessons[key(g,best.d,best.p+i)]={...t};remain--;added++}}
+   return {added,complete:remain===0};
+ }
+ window.v44PlaceSubject=place;
+ function refreshStatus(){const g=group();if(!g)return;const all=subjects(),pending=all.filter(s=>count(s.id,g.id)<req(s)),sel=$('subjectPick');if(sel){const keep=sel.value;sel.innerHTML=pending.map(s=>`<option value="${s.id}">${esc(s.code)} ${esc(s.name)} — เหลือ ${req(s)-count(s.id,g.id)} ชม.</option>`).join('');if(pending.some(s=>s.id===keep))sel.value=keep}const st=$('subjectStatus');if(st){if(!all.length){st.className='notice';st.textContent='ยังไม่มีรายวิชาในแผนนี้'}else if(!pending.length){st.className='notice good';st.textContent=`จัดรายวิชาครบทุกวิชาแล้วสำหรับ ${g.name}`}else{const s=subject(sel?.value)||pending[0];st.className='notice';st.textContent=`ยังจัดไม่ครบ ${pending.length} วิชา • ${s.code} ${s.name} เหลือ ${req(s)-count(s.id,g.id)} ชม. (จัดแล้ว ${count(s.id,g.id)}/${req(s)})`}}}
+ function selectedSubject(){return subject($('subjectPick')?.value)}
+ function decorateAvailability(){
+   const s=selectedSubject(),g=group(),table=$('studentTable');if(!s||!g||!table)return;const t=trialFor(s);if(t.error)return;
+   table.querySelectorAll('.slot[data-key]').forEach(td=>{if(td.querySelector('.lesson')||/พักกลางวัน/.test(td.textContent||''))return;const q=parseKey(td.dataset.key);if(blocked(q.d,q.p,s))return;let busy=null,j=false;for(const [k,l] of Object.entries(state.lessons||{})){const z=parseKey(k);if(String(z.pid)!==String(state.activePlanId)||z.d!==q.d||z.p!==q.p||String(z.gid)===String(g.id))continue;if(joint(t,l)){j=true;break}if(String(l.teacherId||'')===String(t.teacherId||'')){busy=l;break}}
+     const ghost=document.createElement('div');ghost.className='v44ghost '+(j?'joint':busy?'busy':'ok');if(j){ghost.textContent=`${s.name} • เรียนรวมได้`;td.classList.add('v44-ghost-joint')}else if(busy){const bs=subject(busy.subjectId);ghost.textContent=`${bs?.name||'ครูไม่ว่าง'} • ครูไม่ว่าง`;td.classList.add('v44-ghost-busy')}else{ghost.textContent=s.name;td.classList.add('v44-ghost-ok')}td.appendChild(ghost);
+   });
+ }
+ const baseRender=renderAll;renderAll=function(){baseRender();refreshStatus();setTimeout(decorateAvailability,0)};
+ document.addEventListener('change',e=>{if(['subjectPick','teacherPick','roomPick','scheduleGroupPick'].includes(e.target?.id))setTimeout(()=>{refreshStatus();decorateAvailability()},0)},true);
+ function bind(id,label,busy,fn){const old=$(id);if(!old)return;const b=old.cloneNode(true);old.replaceWith(b);b.type='button';b.textContent=label;b.onclick=null;b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();if(b.classList.contains('v44busy'))return;const oldText=b.textContent;b.classList.add('v44busy');b.textContent=busy;msg(busy);requestAnimationFrame(()=>setTimeout(()=>{try{fn()}catch(err){console.error(err);msg('เกิดข้อผิดพลาด: '+(err?.message||err),true)}finally{b.classList.remove('v44busy');b.textContent=oldText}},30))},true)}
+ bind('autoOne','จัดวิชานี้อัตโนมัติ','กำลังจัดวิชานี้…',()=>{const s=selectedSubject();if(!s)return msg('กรุณาเลือกรายวิชาก่อน',true);const before=count(s.id),r=place(s);saveLocal();renderAll();const after=count(s.id);if(r.error)msg(r.error,true);else if(after>before)msg(`จัด ${s.code} ${s.name} เพิ่ม ${after-before} คาบ • ${after}/${req(s)} ชม.`,after<req(s));else if(after>=req(s))msg(`${s.code} ${s.name} ครบ ${after}/${req(s)} ชม. แล้ว`);else msg(`ยังหาช่องให้ ${s.code} ${s.name} ไม่ได้`,true)});
+ bind('autoAll','จัดทุกวิชาอัตโนมัติ (ห้องนี้)','กำลังจัดทุกวิชา…',()=>{const g=group();if(!g)return msg('กรุณาเลือกห้อง / กลุ่มก่อน',true);const list=subjects().sort((a,b)=>(String(a.code).startsWith('20000')?0:1)-(String(b.code).startsWith('20000')?0:1)||req(b)-req(a));let added=0;for(let pass=0;pass<8;pass++){let round=0;for(const s of list)if(count(s.id,g.id)<req(s)){const r=place(s);round+=r.added||0}added+=round;if(!round)break}saveLocal();renderAll();const miss=list.filter(s=>count(s.id,g.id)<req(s));msg(miss.length?`จัดเพิ่ม ${added} คาบ • ยังขาด ${miss.length} วิชา: `+miss.slice(0,4).map(s=>`${s.code} ${count(s.id,g.id)}/${req(s)}`).join(' • '):`จัดทุกวิชาของ ${g.name} ครบแล้ว • เพิ่ม ${added} คาบ`,!!miss.length)});
+ bind('clearSchedule','ล้างตารางห้องนี้','กำลังตรวจสอบ…',()=>{const g=group();if(!g)return msg('กรุณาเลือกห้อง / กลุ่มก่อน',true);const ks=Object.keys(state.lessons||{}).filter(k=>{const q=parseKey(k);return String(q.pid)===String(state.activePlanId)&&String(q.gid)===String(g.id)});if(!ks.length)return msg(`${g.name} ยังไม่มีคาบให้ล้าง`);if(!confirm(`ล้างตารางเฉพาะ ${g.name} จำนวน ${ks.length} คาบ?`))return msg('ยกเลิกการล้างตาราง');ks.forEach(k=>delete state.lessons[k]);saveLocal();renderAll();msg(`ล้างตาราง ${g.name} แล้ว ${ks.length} คาบ`)});
+ renderAll();msg('พร้อมใช้งาน • เลือกวิชาแล้วชื่อวิชาจาง ๆ จะแสดงในช่องที่วางได้ทันที');
+})();
+</script>
