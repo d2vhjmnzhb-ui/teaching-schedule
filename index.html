@@ -508,7 +508,7 @@ function renderPreview(mode=window.previewMode||'student'){
      let arr=teacherLessonAt(tid,di,p);content=arr.map(l=>lessonHtml(l,true)).join('<hr>');
    }
    cells+=`<td class="${blocked?'locked print-empty':act&&mode==='student'?'activity':''}">${blocked?'':content}</td>`
-  }sched+=`<tr><th colspan="3">วัน${d}</th><td class="assembly-cell assembly-vertical">กิจกรรมหน้าเสาธง</td>${cells}</tr>`});
+  }sched+=`<tr><th colspan="3">วัน${d}</th>${di===0?'<td class="assembly-cell assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}${cells}</tr>`});
  let subs=mode==='student'?state.subjects.filter(s=>s.groupId===g.id&&!/กิจกรรม|ลูกเสือ/i.test(s.name||'')):state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
  let course='';let half=Math.ceil(subs.length/2)||1;for(let i=0;i<half;i++){let a=subs[i],b=subs[i+half];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`} let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row"><td colspan="9"></td><td colspan="5">รวมทั้งหมด</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
  let extra=mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:`<div>วุฒิการศึกษา ${esc(t?.qualification||'-')}</div><div>หน้าที่พิเศษ ${esc(t?.specialDuty||(t?.special?'มีหน้าที่พิเศษ':'-'))}</div>`;
@@ -632,3 +632,56 @@ window.addEventListener('load',()=>{
 </script>
 
 </body></html>
+<!-- v19 student-first scheduling refinements -->
+<style>
+/* ตารางทุกจุด: กึ่งกลางทั้งแนวตั้ง/แนวนอน, ไม่ขีดตัวเลข, ข้อความยาวย่อแทนตัดบรรทัด */
+.schedule-paper th,.schedule-paper td,.excel-schedule th,.excel-schedule td,.excel-courses th,.excel-courses td{
+ text-align:center!important;vertical-align:middle!important;text-decoration:none!important;
+}
+.schedule-paper *, .excel-schedule *, .excel-courses *{text-decoration:none!important}
+.schedule-paper .lesson,.excel-schedule .lesson{justify-content:center!important;align-items:center!important;text-align:center!important;width:100%;height:100%;white-space:nowrap!important}
+/* หน้าเสาธงเป็นช่องเดียวตลอดสัปดาห์ */
+.schedule-paper .assembly-merged,.excel-schedule .assembly-merged{writing-mode:horizontal-tb!important;transform:none!important;text-align:center!important;vertical-align:middle!important;white-space:nowrap!important;font-size:9px!important;border-top:1px solid #000!important;border-bottom:1px solid #000!important}
+/* ตารางรายวิชาด้านบนให้เตี้ยและกระชับ รองรับราว 8 รายวิชาโดยไม่กินพื้นที่ */
+.excel-courses{font-size:9px!important;line-height:1!important;margin:0!important}
+.excel-courses th,.excel-courses td{height:13px!important;min-height:13px!important;padding:0 2px!important}
+.excel-top{align-items:start!important;gap:4px!important}
+.excel-identity{min-height:72px!important}
+.excel-info{margin:1px 0!important;line-height:1.05!important;font-size:10px!important}
+.excel-info>div{min-height:13px!important;height:13px!important}
+.excel-info>div:first-child{font-size:13px!important}
+@media print{.excel-courses th,.excel-courses td{height:11px!important}.excel-identity{min-height:62px!important}.excel-info>div{height:11px!important;min-height:11px!important}}
+</style>
+<script>
+(function(){
+ // เพิ่มตัวเลือกชั้นปี/ห้องไว้ในเมนูจัดตารางนักเรียนโดยตรง
+ const grid=document.querySelector('#schedulePage .card .grid');
+ if(grid && !document.getElementById('scheduleGroupPick')){
+   const lab=document.createElement('label');
+   lab.innerHTML='ชั้นปี / ห้อง / กลุ่ม<select id="scheduleGroupPick"></select>';
+   grid.insertBefore(lab,grid.firstChild);
+ }
+ function fillScheduleGroups(){
+   const sel=document.getElementById('scheduleGroupPick'); if(!sel)return;
+   const p=plan(); let gs=state.groups.filter(g=>g.level===p.level&&String(g.year)===String(p.year));
+   if(!gs.length)gs=state.groups;
+   sel.innerHTML=gs.map(g=>`<option value="${g.id}" ${g.id===state.currentGroupId?'selected':''}>${esc(g.name)}</option>`).join('');
+ }
+ const oldRenderAll=renderAll;
+ renderAll=function(){oldRenderAll();fillScheduleGroups()};
+ document.addEventListener('change',e=>{if(e.target&&e.target.id==='scheduleGroupPick'){state.currentGroupId=e.target.value;oldRenderAll();fillScheduleGroups();}});
+ fillScheduleGroups();
+
+ // ตารางหน้าจอ: หน้าเสาธงรวมเป็นเซลเดียว 5 วัน
+ const oldMakeTable=makeTable;
+ makeTable=function(gid,filterTeacherId=null,clickable=false){
+   let g=state.groups.find(x=>x.id===gid)||group();
+   let h='<table class="schedule-paper"><thead><tr><th class="day">วัน / คาบ</th><th class="assembly">กิจกรรมหน้าเสาธง</th>'+Array.from({length:12},(_,i)=>`<th><div class="period-no">${i+1}</div><div class="period-time">${periodTimes[i]}</div></th>`).join('')+'</tr></thead><tbody>';
+   days.forEach((d,di)=>{h+=`<tr><td class="day">${d}</td>${di===0?'<td class="assembly assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}`;
+     for(let p=1;p<=12;p++){let k=key(g.id,di,p),l=state.lessons[k],locked=p===5,activity=di===2&&(p===7||p===8);if(filterTeacherId&&(!l||l.teacherId!==filterTeacherId))l=null;let cf=l?conflictsFor(g.id,di,p,l,k):[];h+=`<td class="slot ${locked?'locked':''} ${activity?'activity':''} ${cf.length?'conflict':''}" title="${esc(cf.join(' / '))}" ${clickable&&!locked&&!activity?`data-key="${k}" draggable="${!!l}"`:''}>${locked?'พักกลางวัน':activity?'':(l?lessonHtml(l,!!filterTeacherId):'')}</td>`}h+='</tr>'});return h+'</tbody></table>';
+ }
+ makeTeacherCombinedTable=function(tid){let h='<table class="schedule-paper"><thead><tr><th class="day">วัน / คาบ</th><th class="assembly">กิจกรรมหน้าเสาธง</th>'+Array.from({length:12},(_,i)=>`<th><div class="period-no">${i+1}</div><div class="period-time">${periodTimes[i]}</div></th>`).join('')+'</tr></thead><tbody>';days.forEach((d,di)=>{h+=`<tr><td class="day">${d}</td>${di===0?'<td class="assembly assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}`;for(let p=1;p<=12;p++){let locked=p===5,arr=teacherLessonAt(tid,di,p),html=arr.map(l=>lessonHtml(l,true)).join('<hr>');h+=`<td class="slot ${locked?'locked':''} ${arr.length>1?'conflict':''}">${locked?'พักกลางวัน':html}</td>`}h+='</tr>'});return h+'</tbody></table>'}
+ // re-render once with merged assembly cells
+ oldRenderAll();fillScheduleGroups();
+})();
+</script>
