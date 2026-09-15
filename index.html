@@ -568,7 +568,6 @@ function renderPreview(mode=window.previewMode||'student'){
    let blocked=p===5,act=di===2&&(p===7||p===8), content='';
    if(mode==='student'){
      let l=state.lessons[key(g.id,di,p)]; content=l?lessonHtml(l,false):'';
-     if(act)content='';
    }else{
      let arr=teacherLessonAt(tid,di,p);content=arr.map(l=>lessonHtml(l,true)).join('<hr>');
    }
@@ -674,21 +673,42 @@ function cloudConfig(){
   try{return JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{url:'https://script.google.com/macros/s/AKfycby3iBj7uT9jPMg7wg6UqFD2-YEu7vfEp4XJxukUrExPYv6zPmxfZ_i5Duh_y6SUjtM/exec',key:'college-2569'}}catch(e){return {url:'https://script.google.com/macros/s/AKfycby3iBj7uT9jPMg7wg6UqFD2-YEu7vfEp4XJxukUrExPYv6zPmxfZ_i5Duh_y6SUjtM/exec',key:'college-2569'}}
 }
 function saveCloudConfig(c){localStorage.setItem(CLOUD_CFG_KEY,JSON.stringify(c))}
+let cloudSaveBusy=false;
 async function cloudSave(){
+  if(cloudSaveBusy)return;
   const c=cloudConfig();
-  if(!c.url) return alert('กรุณาตั้งค่า Apps Script Web App URL ก่อน');
-  cloudStatus.textContent='กำลังบันทึกขึ้น Cloud...';
+  const url=String(c.url||'').trim();
+  if(!url) return alert('กรุณาตั้งค่า Apps Script Web App URL ก่อน');
+  cloudSaveBusy=true;
+  const buttons=[...document.querySelectorAll('.cloudbar button')];
+  const saveBtn=buttons.find(b=>/บันทึก Cloud/.test(b.textContent||''));
+  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='กำลังบันทึก…'}
+  cloudStatus.textContent='กำลังเตรียมข้อมูลและบันทึกขึ้น Cloud…';
+  cloudStatus.className='notice';
   try{
+    // เก็บสำเนาในเครื่องก่อนเสมอ เพื่อไม่ให้ข้อมูลล่าสุดหายหากอินเทอร์เน็ตสะดุด
+    localStorage.setItem(KEY,JSON.stringify(state));
+    const payload=JSON.stringify(state);
     const body=new URLSearchParams();
-    body.set('action','save'); body.set('key',c.key); body.set('data',JSON.stringify(state));
-    const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
-    const j=await r.json();
-    if(!j.ok) throw new Error(j.error||'save failed');
-    cloudStatus.textContent='บันทึก Cloud แล้ว • '+new Date().toLocaleString('th-TH');
+    body.set('action','save'); body.set('key',c.key||'college-main'); body.set('data',payload);
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),30000);
+    let r;
+    try{
+      r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body,signal:controller.signal});
+    }finally{clearTimeout(timer)}
+    const text=await r.text();
+    let j; try{j=JSON.parse(text)}catch(_){throw new Error('Cloud ตอบกลับไม่ถูกต้อง กรุณาตรวจ Apps Script /exec')}
+    if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
+    cloudStatus.textContent='บันทึก Cloud แล้ว • '+new Date().toLocaleString('th-TH')+' • '+Math.ceil(payload.length/1024)+' KB';
     cloudStatus.className='notice good';
   }catch(e){
-    cloudStatus.textContent='บันทึก Cloud ไม่สำเร็จ: '+e.message;
+    const msg=e?.name==='AbortError'?'ใช้เวลาบันทึกเกิน 30 วินาที กรุณาลองใหม่':(e?.message||String(e));
+    cloudStatus.textContent='ข้อมูลเก็บในเครื่องแล้ว แต่ Cloud ยังไม่สำเร็จ: '+msg;
     cloudStatus.className='errorbox';
+  }finally{
+    cloudSaveBusy=false;
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.oldText||'บันทึก Cloud'}
   }
 }
 async function cloudLoad(){
@@ -774,6 +794,29 @@ window.addEventListener('load',()=>{
  .excel-schedule.pdf-fixed tr:first-child th{font-size:5.9px!important}
  .excel-schedule.pdf-fixed .assembly-time{font-size:5.5px!important}
  .excel-schedule.pdf-fixed .lesson,.excel-schedule.pdf-fixed .lesson b{font-size:5.8px!important}
+}
+</style>
+
+<style>
+/* v32: PDF Thai-safe + show Wednesday periods 7-8 */
+.excel-schedule.pdf-fixed .lesson,
+.excel-schedule.pdf-fixed .lesson b,
+.excel-schedule.pdf-fixed .lesson span,
+.excel-schedule.pdf-fixed .lesson strong{
+  line-height:1.32!important;
+  padding-top:1px!important;
+  padding-bottom:1px!important;
+  text-decoration:none!important;
+}
+.excel-schedule.pdf-fixed td{padding-top:2px!important;padding-bottom:2px!important;}
+@media print{
+  .excel-sheet,.excel-sheet *{font-family:"TH Sarabun PSK","TH SarabunPSK","TH Sarabun New","Sarabun",Arial,sans-serif!important;}
+  .excel-schedule.pdf-fixed tr:nth-child(n+3)>td{height:52px!important;}
+  .excel-schedule.pdf-fixed .lesson,
+  .excel-schedule.pdf-fixed .lesson b,
+  .excel-schedule.pdf-fixed .lesson span,
+  .excel-schedule.pdf-fixed .lesson strong{font-size:6.2px!important;line-height:1.38!important;}
+  .excel-schedule.pdf-fixed th,.excel-schedule.pdf-fixed td{overflow:hidden!important;}
 }
 </style>
 </body></html>
