@@ -261,13 +261,13 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <div class="signer-card"><label>2. หัวหน้างานพัฒนาหลักสูตรฯ<input id="signerCurriculum" placeholder="ชื่อ-นามสกุล"></label></div>
 <div class="signer-card"><label>3. รองผู้อำนวยการฝ่ายวิชาการ<input id="signerAcademic" placeholder="ชื่อ-นามสกุล"></label></div>
 <div class="signer-card"><label>4. ผู้อำนวยการ<input id="signerDirector" placeholder="ชื่อ-นามสกุล"></label></div></div><div class="actions"><button class="btn primary" id="saveSigners">บันทึกผู้ลงนาม</button></div></div>
-<div class="card"><h2>ห้องเรียน / ห้องปฏิบัติการ</h2><div class="grid3"><label>ชื่อ/เลขห้อง<input id="newRoom" placeholder="เช่น 636"></label><div class="actions"><button class="btn primary" id="addRoom">เพิ่มห้อง</button></div></div><div id="roomList"></div></div>
+<div class="card"><h2>ห้องเรียน / ห้องปฏิบัติการ</h2><p class="muted">กำหนดครูผู้สอนประจำห้องได้โดยตรง ครู 1 คนสามารถมีได้หลายห้อง และหน้าจัดตารางจะแสดงเฉพาะห้องของครูที่เลือก</p><div class="grid3"><label>ชื่อ/เลขห้อง<input id="newRoom" placeholder="เช่น 636"></label><label>ครูผู้สอนประจำห้อง<select id="newRoomTeacher"></select></label><div class="actions"><button class="btn primary" id="addRoom">เพิ่มห้อง</button></div></div><div id="roomList"></div></div>
 </section>
 
 <section id="schedulePage" class="page">
 <div class="card"><div class="print-title">ตารางเรียนประจำสัปดาห์</div><h2>จัดตารางนักเรียน</h2><div class="notice good">ระบบกันคาบกิจกรรมวันพุธ คาบ 7–8 อัตโนมัติ และไม่นับเป็นรายวิชาที่ต้องจัด</div><div class="grid">
 <label>รายวิชา<select id="subjectPick"></select></label><label>ครูผู้สอน<select id="teacherPick"></select></label>
-<label>ห้องเรียน<select id="roomPick"></select></label><label>ชั้นเรียน<input id="groupShow" disabled></label><div class="actions"><button type="button" class="btn light" onclick="bindRoomsToTeacher()">ผูกห้องกับครู (4 ห้องขึ้นไปได้)</button></div>
+<label>ห้องเรียน<select id="roomPick"></select></label><label>ชั้นเรียน<input id="groupShow" disabled></label>
 </div><div id="subjectStatus" class="notice"></div><div class="actions">
 <button class="btn primary" id="autoOne">จัดวิชานี้อัตโนมัติ</button><button class="btn light" id="autoAll">จัดทุกวิชาอัตโนมัติ</button><button class="btn danger" id="clearSchedule">ล้างตาราง</button>
 </div><p class="muted">แตะคาบว่างเพื่อวางวิชา • แตะคาบเดิมเพื่อลบ • ลากคาบที่มีวิชาไปยังคาบอื่นเพื่อย้าย/สลับ • สามารถแบ่ง 4 ชม. เป็น 2+2, 3+1 ฯลฯ ได้</p></div>
@@ -636,7 +636,7 @@ addSubject.onclick=()=>{
 };
 resetDemo.onclick=()=>{if(confirm('คืนค่าข้อมูลตัวอย่างทั้งหมด?')){state=demo();renderAll()}};
 addTeacher.onclick=()=>{let x=newTeacher.value.trim();if(!x)return;let type=prompt('ประเภทครู','ข้าราชการครู')||'ข้าราชการครู';let qualification=prompt('วุฒิการศึกษา','')||'';let specialDuty=prompt('หน้าที่พิเศษ','')||'';let inside=Number(prompt('เป้าคาบในต่อสัปดาห์',specialDuty?12:18));if(Number.isNaN(inside))inside=specialDuty?12:18;let outside=Number(prompt('เป้าคาบนอกต่อสัปดาห์',specialDuty?12:0));if(Number.isNaN(outside))outside=specialDuty?12:0;state.teachers.push({id:uid(),name:x,type,qualification,specialDuty,special:!!specialDuty.trim(),insideTarget:inside,outsideTarget:outside});newTeacher.value='';renderAll()};
-addRoom.onclick=()=>{let x=newRoom.value.trim();if(!x)return;state.rooms.push({id:uid(),name:x});newRoom.value='';renderAll()};
+addRoom.onclick=()=>{let x=newRoom.value.trim();if(!x)return;let tid=document.getElementById('newRoomTeacher')?.value||'';if(!tid)return alert('กรุณาเลือกครูผู้สอนประจำห้อง');state.rooms.push({id:uid(),name:x,teacherId:tid});newRoom.value='';renderAll()};
 subjectPick.onchange=()=>{let s=subject(subjectPick.value);if(s){teacherPick.value=s.teacherId;renderRoomPickForTeacher(s.teacherId,s.roomId)}renderStatus()};
 teacherPick.onchange=()=>{let s=subject(subjectPick.value);renderRoomPickForTeacher(teacherPick.value,s?.roomId);};
 teacherView.onchange=()=>{renderTeacher();renderPreview(window.previewMode||'student')};
@@ -1042,5 +1042,58 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
  isBlocked=function(g,d,p){return false};
  document.querySelector('#schedulePage .notice.good').textContent='วิชาลูกเสือ/กิจกรรมสามารถเพิ่มในแผนได้ และลงได้เฉพาะวันพุธ คาบ 7–8 เท่านั้น';
  const oldAll=renderAll;renderAll=function(){oldAll();renderGroupAdmin()};renderAll();
+})();
+</script>
+
+<style>
+/* v31: พิมพ์เป็นกระดาษ A4 แนวนอนสีขาว ขอบเหลี่ยม ไม่มีการ์ดมนติดไป */
+@media print{
+ html,body,#printPage,#printPage .card,#printPage .tablewrap,#preview,.preview,.excel-sheet,.excel-top,.excel-identity,.excel-courses,.excel-schedule{
+   background:#fff!important;border-radius:0!important;box-shadow:none!important;
+ }
+ #printPage .card,#printPage .tablewrap{border:0!important;margin:0!important;padding:0!important;}
+ #preview,.preview,.excel-sheet{border:0!important;outline:0!important;margin:0!important;padding:0!important;width:100%!important;max-width:none!important;}
+ @page{size:A4 landscape;margin:7mm;}
+}
+</style>
+<script>
+(function v31(){
+  // ย้ายการผูกห้องออกจากหน้าจัดตาราง: ห้องแต่ละห้องมีครูผู้สอนประจำห้อง 1 คน
+  state.rooms=(state.rooms||[]).map(r=>({...r,teacherId:r.teacherId||''}));
+  function teacherOptions(selected=''){
+    return (state.teachers||[]).map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${esc(t.name)}</option>`).join('');
+  }
+  window.assignRoomTeacher=function(rid,tid){let r=room(rid);if(!r)return;r.teacherId=tid||'';save();renderAll()};
+  // ห้องที่ขึ้นในหน้าจัดตาราง = เฉพาะห้องที่กำหนดให้ครูคนนั้นเท่านั้น
+  preferredRoomsForTeacher=function(tid){return state.rooms.filter(r=>r.teacherId===tid).map(r=>r.id)};
+  renderRoomPickForTeacher=function(tid,keep){
+    const ids=preferredRoomsForTeacher(tid);
+    roomPick.innerHTML=ids.length?ids.map(id=>`<option value="${id}">${esc(room(id)?.name||'')}</option>`).join(''):'<option value="">ยังไม่ได้กำหนดห้องให้ครูคนนี้</option>';
+    if(keep&&ids.includes(keep))roomPick.value=keep;else if(ids.length)roomPick.value=ids[0];
+  };
+  // คงชื่อฟังก์ชันเดิมไว้เพื่อไม่ให้โค้ดเก่า error แต่ไม่มีเมนูเรียกจากหน้าจัดตารางแล้ว
+  bindRoomsToTeacher=function(){};
+  const oldLists=renderLists;
+  renderLists=function(){
+    oldLists();
+    const nrt=document.getElementById('newRoomTeacher');
+    if(nrt){const keep=nrt.value;nrt.innerHTML=teacherOptions(keep);if(keep&&state.teachers.some(t=>t.id===keep))nrt.value=keep;}
+    roomList.innerHTML=state.rooms.map(r=>`<div class="subject"><div><b>${esc(r.name)}</b><div class="muted">ครูผู้สอนประจำห้อง</div></div><select onchange="assignRoomTeacher('${r.id}',this.value)"><option value="">-- เลือกครู --</option>${teacherOptions(r.teacherId||'')}</select><button class="btn danger" onclick="removeRoomById('${r.id}')">ลบ</button></div>`).join('');
+  };
+  // เมื่อเปลี่ยนครู ให้รีเฟรชเฉพาะห้องของครูนั้น และบันทึกห้องที่เลือกให้รายวิชา
+  teacherPick.onchange=()=>{
+    let s=subject(subjectPick.value);if(s)s.teacherId=teacherPick.value;
+    renderRoomPickForTeacher(teacherPick.value,s?.roomId);
+    if(s&&roomPick.value)s.roomId=roomPick.value;
+    save();renderStatus();
+  };
+  roomPick.onchange=()=>{let s=subject(subjectPick.value);if(s){s.roomId=roomPick.value;save()}};
+  const oldPicks31=renderPicks;
+  renderPicks=function(){
+    oldPicks31();
+    const nrt=document.getElementById('newRoomTeacher');if(nrt){let keep=nrt.value;nrt.innerHTML=teacherOptions(keep);if(keep&&state.teachers.some(t=>t.id===keep))nrt.value=keep;}
+    let s=subject(subjectPick.value);renderRoomPickForTeacher(teacherPick.value,s?.roomId);
+  };
+  renderAll();save();
 })();
 </script>
