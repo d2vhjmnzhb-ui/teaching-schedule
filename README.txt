@@ -1,5 +1,19 @@
-Teaching Schedule v7 - Excel-faithful preview
-- Uses the actual college emblem extracted from the uploaded Excel template.
-- Header and course table share the exact same overall width as the schedule grid.
-- Preview uses thin black Excel-like cell borders and compact spreadsheet typography.
-Upload index.html AND image1.png together to the root of the GitHub Pages repository.
+College System v9 - Full Scheduler
+
+เพิ่มจาก v8:
+- หลายแผนตาราง / คัดลอกแผน
+- หลายห้อง/กลุ่ม ปวช.-ปวส.
+- ฐานครูพร้อมประเภท หน้าที่พิเศษ เป้าคาบใน/คาบนอก
+- ตรวจครูชน ห้องชน กลุ่มชน และขึ้นสีแดง
+- Auto Schedule ตรวจการชนข้ามห้อง
+- คาบ 5 พักกลางวัน
+- พุธคาบ 6-7 กิจกรรม: ปวช.=ลูกเสือ, ปวส.=กิจกรรม
+- กระจายวัน, ให้ความสำคัญคาบ 1/6, หลีกเลี่ยงหลัง 16.00
+- ตารางครูรวมข้อมูลจากทุกกลุ่ม
+- สำรอง/นำเข้าข้อมูล JSON
+- Export Excel
+- หน้าเอกสารยังใช้ตราวิทยาลัย image1.png
+
+หมายเหตุ:
+ข้อมูลยังเก็บใน localStorage ของเบราว์เซอร์ และมี JSON backup/restore.
+การบันทึกออนไลน์ถาวรข้ามเครื่องด้วย Google Sheets/Apps Script ต้องเชื่อม endpoint จริงภายหลัง.
