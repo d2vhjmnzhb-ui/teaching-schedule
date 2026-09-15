@@ -1448,8 +1448,26 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
     }
     suggestions.sort((a,b)=>b.best.gain-a.best.gain);
     if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้ยังไม่มีคาบท้ายที่สามารถย้ายไปช่วงต้นได้โดยไม่ทำให้ครูหรือนักเรียนชน</div>';return}
-    list.innerHTML=suggestions.slice(0,6).map((x,i)=>`<div class="opt-item"><div><b>แนะนำ: ย้าย ${esc(x.s.code)} ${esc(x.s.name)}</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: ลดการเรียนคาบ 9–12 และให้ความสำคัญกับการเริ่มคาบ ${x.best.start===1?'1 มากที่สุด':x.best.start===6?'6 รองจากคาบ 1':x.best.start}</div></div><button class="btn light" data-opt="${i}">ใช้คำแนะนำนี้</button></div>`).join('');
-    list.querySelectorAll('[data-opt]').forEach(btn=>btn.onclick=()=>{const x=suggestions[+btn.dataset.opt];const vals=x.b.keys.map(k=>state.lessons[k]);x.b.keys.forEach(k=>delete state.lessons[k]);x.best.dest.forEach((k,i)=>state.lessons[k]={...vals[Math.min(i,vals.length-1)]});saveLocal();renderAll();renderSmartSuggestions()});
+    list.innerHTML=suggestions.slice(0,6).map((x,i)=>`<div class="opt-item"><div><b>แนะนำ: ย้าย ${esc(x.s.code)} ${esc(x.s.name)}</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: ลดการเรียนคาบ 9–12 และให้ความสำคัญกับการเริ่มคาบ ${x.best.start===1?'1 มากที่สุด':x.best.start===6?'6 รองจากคาบ 1':x.best.start}</div></div><button type="button" class="btn light" data-opt="${i}">ดูและย้าย</button></div>`).join('');
+    list.querySelectorAll('[data-opt]').forEach(btn=>btn.onclick=(ev)=>{
+      ev.preventDefault();ev.stopPropagation();
+      const x=suggestions[Number(btn.dataset.opt)];if(!x)return;
+      const from=`${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''}`;
+      const to=`${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}`;
+      const ok=window.confirm(`ตรวจสอบคำแนะนำก่อนย้าย\n\n${x.s.code} ${x.s.name}\nจาก: ${from}\nไป: ${to}\n\nเหตุผล: ลดคาบท้ายและทำให้ตารางกระชับขึ้น\n\nกด ตกลง เพื่อย้ายจริง`);
+      if(!ok)return;
+      const before={};x.b.keys.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);x.best.dest.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);
+      const vals=x.b.keys.map(k=>state.lessons[k]&&{...state.lessons[k]}).filter(Boolean);if(!vals.length){alert('ไม่พบคาบต้นทาง กรุณาให้ระบบคำนวณคำแนะนำใหม่');renderSmartSuggestions();return}
+      x.b.keys.forEach(k=>delete state.lessons[k]);
+      x.best.dest.forEach((k,i)=>state.lessons[k]={...(vals[Math.min(i,vals.length-1)]||vals[0])});
+      window.__lastSmartMove={before,from,to,label:`${x.s.code} ${x.s.name}`};
+      saveLocal();renderAll();
+      setTimeout(()=>{
+        const box=ensureBox(),undo=document.createElement('div');undo.id='smartUndo';undo.className='opt-good';undo.innerHTML=`ย้าย ${esc(window.__lastSmartMove.label)} แล้ว: ${esc(from)} → ${esc(to)} <button type=\"button\" class=\"btn light\" id=\"smartUndoBtn\">ย้อนกลับการย้าย</button>`;
+        const old=document.getElementById('smartUndo');if(old)old.remove();box.prepend(undo);
+        document.getElementById('smartUndoBtn').onclick=(e)=>{e.preventDefault();const m=window.__lastSmartMove;if(!m)return;Object.entries(m.before).forEach(([k,v])=>{if(v)state.lessons[k]={...v};else delete state.lessons[k]});window.__lastSmartMove=null;saveLocal();renderAll();};
+      },30);
+    });
   }
   const prevRenderAll=renderAll;renderAll=function(){prevRenderAll();setTimeout(renderSmartSuggestions,0)};
   ensureBox();renderSmartSuggestions();
