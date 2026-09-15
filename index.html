@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
 <meta name="robots" content="noindex,nofollow">
 <title>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</title>
 <style>
@@ -690,3 +691,32 @@ window.addEventListener('load',()=>{
  oldRenderAll();fillScheduleGroups();
 })();
 </script>
+
+<style>
+/* v21: ไม่ให้ Safari/iOS ทำตัวเลขและเวลาเป็นลิงก์/ขีดเส้นใต้ */
+.schedule-paper a[x-apple-data-detectors],
+.excel-schedule a[x-apple-data-detectors],
+.excel-courses a[x-apple-data-detectors],
+a[x-apple-data-detectors]{
+ color:inherit!important;text-decoration:none!important;border-bottom:0!important;
+ -webkit-text-decoration:none!important;-webkit-text-fill-color:currentColor!important;
+ font:inherit!important;
+}
+.schedule-paper .period-no,.schedule-paper .period-time,
+.excel-schedule th,.excel-courses th,.excel-courses td{
+ text-decoration:none!important;-webkit-text-decoration:none!important;
+ border-image:none!important;box-shadow:none!important;
+}
+/* หน้าเสาธง: เซลรวม 5 วัน ข้อความแนวตั้งโดยต้นประโยคอยู่ด้านล่าง */
+.schedule-paper .assembly-merged,.excel-schedule .assembly-merged{
+ position:relative!important;overflow:visible!important;white-space:nowrap!important;
+ writing-mode:horizontal-tb!important;transform:none!important;font-size:0!important;
+ text-align:center!important;vertical-align:middle!important;
+}
+.schedule-paper .assembly-merged::after,.excel-schedule .assembly-merged::after{
+ content:'กิจกรรมหน้าเสาธง';position:absolute;left:50%;top:50%;
+ transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;
+ white-space:nowrap;font-size:9px;line-height:1;font-weight:400;color:#111;
+ text-decoration:none!important;-webkit-text-decoration:none!important;
+}
+</style>
