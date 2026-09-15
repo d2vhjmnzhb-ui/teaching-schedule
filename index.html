@@ -564,15 +564,41 @@ function signatureHtml(){
 function renderPreview(mode=window.previewMode||'student'){
  window.previewMode=mode;let g=group(),ptv=document.getElementById('printTeacherView'),tid=(mode==='teacher'&&ptv?.value)?ptv.value:(teacherView.value||state.teachers[0]?.id);
  let t=teacher(tid), who=mode==='student'?g.name:(t?.name||'');
- let sched='';days.forEach((d,di)=>{let cells='';for(let p=1;p<=12;p++){
-   let blocked=p===5,act=di===2&&(p===7||p===8), content='';
-   if(mode==='student'){
-     let l=state.lessons[key(g.id,di,p)]; content=l?lessonHtml(l,false):'';
-   }else{
-     let arr=teacherLessonAt(tid,di,p);content=arr.map(l=>lessonHtml(l,true)).join('<hr>');
+ let sched='';days.forEach((d,di)=>{
+   let cells='',p=1;
+   while(p<=12){
+     let blocked=p===5,act=di===2&&(p===7||p===8);
+     if(blocked){cells+=`<td class="locked print-empty"></td>`;p++;continue}
+     let content='',sig='';
+     if(mode==='student'){
+       let l=state.lessons[key(g.id,di,p)];
+       if(l){content=lessonHtml(l,false);sig=`S|${l.subjectId}|${l.roomId||''}|${l.teacherId||''}`}
+     }else{
+       let arr=teacherLessonAt(tid,di,p);
+       content=arr.map(l=>lessonHtml(l,true)).join('<hr>');
+       if(arr.length===1){let l=arr[0];sig=`T|${l.subjectId}|${l.roomId||''}|${l.groupId||''}`}
+     }
+     let span=1;
+     if(sig){
+       for(let q=p+1;q<=12;q++){
+         if(q===5)break;
+         let nextSig='';
+         if(mode==='student'){
+           let nl=state.lessons[key(g.id,di,q)];
+           if(nl)nextSig=`S|${nl.subjectId}|${nl.roomId||''}|${nl.teacherId||''}`;
+         }else{
+           let na=teacherLessonAt(tid,di,q);
+           if(na.length===1){let nl=na[0];nextSig=`T|${nl.subjectId}|${nl.roomId||''}|${nl.groupId||''}`}
+         }
+         if(nextSig!==sig)break;
+         span++;
+       }
+     }
+     cells+=`<td ${span>1?`colspan="${span}"`:''} class="${act&&mode==='student'?'activity ':''}${span>1?'pdf-merged-subject':''}">${content}</td>`;
+     p+=span;
    }
-   cells+=`<td class="${blocked?'locked print-empty':act&&mode==='student'?'activity':''}">${blocked?'':content}</td>`
-  }sched+=`<tr><th class="pdf-day">วัน${d}</th>${di===0?'<td class="assembly-cell assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}${cells}</tr>`});
+   sched+=`<tr><th class="pdf-day">วัน${d}</th>${di===0?'<td class="assembly-cell assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}${cells}</tr>`
+ });
  let subs=mode==='student'?planSubjects():state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
  let course='';const SIDE_SLOTS=8;for(let i=0;i<SIDE_SLOTS;i++){let a=subs[i],b=subs[i+SIDE_SLOTS];let cr=x=>x?`<td class="course-code">${esc(x.code)}</td><td class="course-name" colspan="4">${esc(x.name)}</td><td class="course-num">${x.t}</td><td class="course-num">${x.p}</td><td class="course-num">${x.n}</td><td class="course-num">${x.t+x.p}</td>`:`<td class="course-code"></td><td class="course-name" colspan="4"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`} let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row"><td colspan="9"></td><td colspan="5">รวมทั้งหมด</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
  let extra=mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:`<div>วุฒิการศึกษา ${esc(t?.qualification||'-')}</div><div>หน้าที่พิเศษ ${esc(t?.specialDuty||(t?.special?'มีหน้าที่พิเศษ':'-'))}</div>`;
@@ -1140,3 +1166,9 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   renderAll();save();
 })();
 </script>
+
+<style>
+/* v33: PDF/print only — merge consecutive periods of the exact same lesson */
+.excel-schedule.pdf-fixed td.pdf-merged-subject{vertical-align:middle!important;text-align:center!important;padding:2px 4px!important}
+.excel-schedule.pdf-fixed td.pdf-merged-subject .lesson{width:100%!important;height:100%!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important}
+</style>
