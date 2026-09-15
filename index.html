@@ -1717,3 +1717,81 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   };
 })();
 </script>
+
+<style>
+/* v42: unified Auto controls */
+#autoOne,#autoAll,#clearSchedule{touch-action:manipulation;cursor:pointer;transition:transform .08s ease,opacity .12s ease,box-shadow .12s ease}
+#autoOne:active,#autoAll:active,#clearSchedule:active{transform:scale(.97);opacity:.78}
+#autoOne.v42busy,#autoAll.v42busy,#clearSchedule.v42busy{opacity:.65;pointer-events:none}
+#v42ActionMsg{margin-top:8px;font-size:13px;line-height:1.45}
+</style>
+<script>
+(function v42UnifiedAutoButtons(){
+  const $=id=>document.getElementById(id);
+  const req=s=>Number(s?.t||0)+Number(s?.p||0);
+  const count=(sid,gid=state.currentGroupId)=>Object.entries(state.lessons||{}).reduce((n,[k,l])=>{const q=parseKey(k);return n+(q.pid===state.activePlanId&&q.gid===gid&&l.subjectId===sid?1:0)},0);
+  used=(sid,gid=state.currentGroupId)=>count(sid,gid); window.usedForGroup=used;
+  function say(text,bad=false){
+    let n=$('v42ActionMsg'),a=$('v40ScopeNote')||$('clearSchedule');
+    if(!n&&a){n=document.createElement('div');n.id='v42ActionMsg';a.insertAdjacentElement('afterend',n)}
+    if(n){n.className=bad?'bad':'notice';n.textContent=text}
+  }
+  function subjects(){return (typeof subjectsForCurrentGroup==='function'?subjectsForCurrentGroup():planSubjects()).slice()}
+  function flash(btn,text,fn){
+    if(!btn||btn.classList.contains('v42busy'))return;
+    const old=btn.textContent;btn.classList.add('v42busy');btn.textContent=text;
+    say(text);
+    setTimeout(()=>{try{fn()}catch(e){console.error(e);say('เกิดข้อผิดพลาด: '+(e?.message||e),true)}finally{btn.classList.remove('v42busy');btn.textContent=old}},40);
+  }
+  function ensureRoom(s){
+    const tid=s?.teacherId||$('teacherPick')?.value||'';
+    if(!tid)return {ok:false,msg:'วิชานี้ยังไม่ได้กำหนดครูผู้สอน'};
+    const rooms=(state.rooms||[]).filter(r=>r.teacherId===tid);
+    if(!rooms.length)return {ok:false,msg:'ครูของวิชานี้ยังไม่มีห้องเรียนที่กำหนดไว้ กรุณากำหนดในหน้า “ครู / ห้องเรียน”'};
+    /* ถ้าวิชายังไม่มีห้อง ให้ Auto ใช้ห้องแรกของครู เพื่อไม่ให้ dropdown ว่างทำให้ปุ่มเงียบ */
+    if(!s.roomId||!rooms.some(r=>r.id===s.roomId))s.roomId=rooms[0].id;
+    return {ok:true};
+  }
+  function autoOneNow(){
+    const g=group();if(!g){say('กรุณาเลือกห้อง / กลุ่มก่อน',true);return}
+    const s=subject($('subjectPick')?.value);if(!s){say('กรุณาเลือกรายวิชาก่อน',true);return}
+    const rr=ensureRoom(s);if(!rr.ok){say(rr.msg,true);return}
+    const before=count(s.id,g.id),need=req(s);
+    if(before>=need){say(`${s.code} ${s.name} จัดครบ ${before}/${need} ชม. แล้ว`);return}
+    autoSubject(s);saveLocal();renderAll();
+    const after=count(s.id,g.id);
+    say(after>before?`จัด ${s.code} ${s.name} เพิ่ม ${after-before} คาบ • ตอนนี้ ${after}/${need} ชม.`:`ยังหาช่องว่างที่ไม่ชนให้ ${s.code} ${s.name} ไม่ได้`,after===before);
+  }
+  function autoAllNow(){
+    const g=group();if(!g){say('กรุณาเลือกห้อง / กลุ่มก่อน',true);return}
+    const list=subjects().sort((a,b)=>{const ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;return ap-bp||req(b)-req(a)});
+    const bad=list.map(s=>({s,r:ensureRoom(s)})).filter(x=>!x.r.ok);
+    if(bad.length){say(`ยังจัดไม่ได้ ${bad.length} วิชา: ${bad[0].r.msg}`,true);return}
+    const before=Object.keys(state.lessons||{}).length;
+    for(let pass=0;pass<10;pass++){
+      const n0=Object.keys(state.lessons||{}).length;
+      for(const s of list)if(count(s.id,g.id)<req(s))autoSubject(s);
+      if(Object.keys(state.lessons||{}).length===n0)break;
+    }
+    saveLocal();renderAll();
+    const missing=list.filter(s=>count(s.id,g.id)<req(s));
+    const added=Object.keys(state.lessons||{}).length-before;
+    say(missing.length?`จัดเพิ่ม ${added} คาบ • ยังเหลือ ${missing.length} วิชาที่หาช่องไม่ได้`:`จัดทุกวิชาของ ${g.name} ครบแล้ว • เพิ่ม ${added} คาบ`,!!missing.length);
+  }
+  function clearNow(){
+    const g=group();if(!g){say('กรุณาเลือกห้อง / กลุ่มก่อน',true);return}
+    const keys=Object.keys(state.lessons||{}).filter(k=>{const q=parseKey(k);return q.pid===state.activePlanId&&q.gid===g.id});
+    if(!keys.length){say(`${g.name} ยังไม่มีคาบให้ล้าง`);return}
+    if(!confirm(`ล้างตารางเฉพาะ ${g.name} จำนวน ${keys.length} คาบ?\nตารางห้องอื่นจะไม่ถูกลบ`))return;
+    keys.forEach(k=>delete state.lessons[k]);saveLocal();renderAll();say(`ล้างตาราง ${g.name} แล้ว ${keys.length} คาบ`);
+  }
+  function replace(id,label,handler,busy){
+    const old=$(id);if(!old)return;const b=old.cloneNode(true);old.replaceWith(b);b.type='button';if(label)b.textContent=label;
+    b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();flash(b,busy,handler)},{capture:true});
+  }
+  replace('autoOne','จัดวิชานี้อัตโนมัติ',autoOneNow,'กำลังจัดวิชานี้…');
+  replace('autoAll','จัดทุกวิชาอัตโนมัติ (ห้องนี้)',autoAllNow,'กำลังจัดทุกวิชา…');
+  replace('clearSchedule','ล้างตารางห้องนี้',clearNow,'กำลังตรวจสอบ…');
+  say('ปุ่ม Auto พร้อมใช้งาน • ทำงานเฉพาะห้อง/กลุ่มที่เลือก');
+})();
+</script>
