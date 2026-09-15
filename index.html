@@ -1323,3 +1323,135 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   renderAll();
 })();
 </script>
+
+<style>
+/* v37 Smart Auto Optimizer */
+#smartOptimizerBox{margin-top:12px;border:1px solid #d8e2ef;border-radius:14px;background:#f8fbff;padding:14px}
+#smartOptimizerBox .opt-title{font-weight:800;font-size:16px;margin-bottom:5px}
+#smartOptimizerBox .opt-sub{font-size:13px;color:#53657a;margin-bottom:10px}
+#smartOptimizerList{display:grid;gap:8px}
+.opt-item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.opt-item .why{font-size:12px;color:#64748b;margin-top:3px}.opt-item button{white-space:nowrap}
+.opt-good{font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:9px 11px}
+</style>
+<script>
+(function v37SmartOptimizer(){
+  const dayNames=['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'];
+  const periodRank={1:1200,6:1080,2:900,3:850,4:800,7:690,8:630,9:-500,10:-620,11:-740,12:-860};
+  const teachingPeriods=[1,2,3,4,6,7,8,9,10,11,12];
+  const validPeriod=(d,p,s)=>p>=1&&p<=12&&p!==5&&(!activitySlot(d,p)||isActivitySubject(s));
+
+  /* ห้องเดียวกันเรียนรวมได้: ห้องจึงไม่ใช่ conflict; กลุ่มและครูยังห้ามชน */
+  conflictsFor=function(gid,d,p,lesson,ignoreKey=null){
+    const out=[];
+    for(const [k,l] of Object.entries(state.lessons)){
+      if(k===ignoreKey)continue;
+      const q=parseKey(k); if(q.pid!==state.activePlanId||q.d!==d||q.p!==p)continue;
+      if(q.gid===gid)out.push('กลุ่มนักเรียนชน');
+      if(lesson.teacherId && l.teacherId===lesson.teacherId)out.push(`ครู ${teacher(l.teacherId)?.name||''} ชน`);
+    }
+    return [...new Set(out)];
+  };
+
+  function teacherRooms(tid,s){
+    let rs=state.rooms.filter(r=>r.teacherId===tid);
+    if(!rs.length && s.roomId && state.rooms.some(r=>r.id===s.roomId)) rs=[room(s.roomId)];
+    return rs.filter(Boolean);
+  }
+  function blockScore(d,start,len){
+    let score=(periodRank[start]||0)+len*240;
+    if(start===1)score+=420;if(start===6)score+=300;
+    if(start>=9)score-=900; // คาบท้ายเป็นทางเลือกสุดท้าย
+    // ให้ก้อนยาวและไม่แตกเป็นเศษได้เปรียบ
+    if(len>=3)score+=180;if(len===4)score+=180;
+    return score-d*2;
+  }
+  function candidatesFor(s,need,gid){
+    const tid=s.teacherId||teacherPick.value;
+    const rooms=teacherRooms(tid,s);
+    const roomIds=rooms.length?rooms.map(r=>r.id):[s.roomId||roomPick.value].filter(Boolean);
+    const out=[];
+    for(let d=0;d<5;d++){
+      for(const start of teachingPeriods){
+        if(start===9) continue; // ไม่เริ่มที่ 9; ถ้าจำเป็นคาบท้ายจะเริ่ม 10/11/12 เป็นชิ้นเล็กเท่านั้น
+        for(let len=Math.min(need,4);len>=1;len--){
+          const ps=Array.from({length:len},(_,i)=>start+i);
+          if(ps.some(p=>!validPeriod(d,p,s)))continue;
+          const ks=ps.map(p=>key(gid,d,p));
+          if(ks.some(k=>state.lessons[k]))continue;
+          for(const rid of roomIds){
+            const trial={planId:state.activePlanId,groupId:gid,subjectId:s.id,teacherId:tid,roomId:rid};
+            if(ks.some(k=>{const q=parseKey(k);return conflictsFor(gid,q.d,q.p,trial).length}))continue;
+            out.push({ks,trial,score:blockScore(d,start,len),start,len,d});
+          }
+        }
+      }
+    }
+    // หากเหลือจริง ๆ จึงยอมใช้คาบ 9 เป็นตัวเติม แต่ลงโทษคะแนนหนักมาก
+    if(!out.length){
+      for(let d=0;d<5;d++)for(let len=Math.min(need,4);len>=1;len--){
+        const start=9,ps=Array.from({length:len},(_,i)=>start+i);if(ps.some(p=>!validPeriod(d,p,s)))continue;
+        const ks=ps.map(p=>key(gid,d,p));if(ks.some(k=>state.lessons[k]))continue;
+        for(const rid of roomIds){const trial={planId:state.activePlanId,groupId:gid,subjectId:s.id,teacherId:tid,roomId:rid};if(ks.some(k=>{const q=parseKey(k);return conflictsFor(gid,q.d,q.p,trial).length}))continue;out.push({ks,trial,score:-3000+len*100,start,len,d})}
+      }
+    }
+    return out.sort((a,b)=>b.score-a.score||b.len-a.len);
+  }
+
+  autoSubject=function(s){
+    const gid=state.currentGroupId;let need=Number(s.t||0)+Number(s.p||0)-used(s.id,gid);if(need<=0)return;
+    if(isActivitySubject(s)){
+      const tid=s.teacherId||teacherPick.value,rs=teacherRooms(tid,s),rid=(rs[0]&&rs[0].id)||s.roomId||roomPick.value;
+      for(const p of [7,8]){if(need<=0)break;const k=key(gid,2,p);if(state.lessons[k])continue;const l={planId:state.activePlanId,groupId:gid,subjectId:s.id,teacherId:tid,roomId:rid};if(!conflictsFor(gid,2,p,l).length){state.lessons[k]=l;need--}}
+      return;
+    }
+    let guard=0;
+    while(need>0&&guard++<20){const c=candidatesFor(s,need,gid);if(!c.length)break;const best=c[0];best.ks.forEach(k=>state.lessons[k]={...best.trial});need-=best.ks.length}
+  };
+
+  function sortedSubjects(){return subjectsForCurrentGroup().slice().sort((a,b)=>{const ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;return ap-bp||((Number(b.t||0)+Number(b.p||0))-(Number(a.t||0)+Number(a.p||0)))})}
+  autoAll.onclick=()=>{
+    const keep=state.currentGroupId;
+    groupsForPlan().forEach(g=>{state.currentGroupId=g.id;sortedSubjects().forEach(autoSubject)});
+    state.currentGroupId=keep;renderAll();setTimeout(renderSmartSuggestions,0);
+  };
+  autoOne.onclick=()=>{const s=subject(subjectPick.value);if(s)autoSubject(s);renderAll();setTimeout(renderSmartSuggestions,0)};
+
+  function ensureBox(){
+    let box=document.getElementById('smartOptimizerBox');if(box)return box;
+    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">คำแนะนำปรับตารางอัจฉริยะ</div><div class="opt-sub">ระบบจะเสนอการย้ายเมื่อทำให้ตารางกระชับขึ้น โดยไม่ย้ายตารางเดิมเองจนกว่าจะกดยอมรับ</div><div id="smartOptimizerList"></div>';
+    const anchor=document.getElementById('subjectStatus')||document.getElementById('autoAll');
+    if(anchor)anchor.parentElement.appendChild(box);return box;
+  }
+  function lessonCanMove(gid,s,keys,d,start){
+    const len=keys.length,ps=Array.from({length:len},(_,i)=>start+i);if(ps.some(p=>!validPeriod(d,p,s)))return null;
+    const dest=ps.map(p=>key(gid,d,p));if(dest.some(k=>state.lessons[k]&&!keys.includes(k)))return null;
+    const sample=state.lessons[keys[0]],trial={...sample};
+    if(dest.some(k=>{const q=parseKey(k);return conflictsFor(gid,q.d,q.p,trial,keys.includes(k)?k:null).some(x=>!x.includes('กลุ่มนักเรียน'))}))return null;
+    // ตรวจกลุ่มเดียวกันโดยละเว้น source ทั้งก้อน
+    for(const dk of dest){const q=parseKey(dk);for(const [ok,ol] of Object.entries(state.lessons)){if(keys.includes(ok)||ok===dk)continue;const oq=parseKey(ok);if(oq.pid===q.pid&&oq.gid===gid&&oq.d===q.d&&oq.p===q.p)return null}}
+    return dest;
+  }
+  function blocksForGroup(gid){
+    const arr=[];
+    for(let d=0;d<5;d++){let p=1;while(p<=12){const k=key(gid,d,p),l=state.lessons[k];if(!l){p++;continue}const sig=`${l.subjectId}|${l.teacherId}|${l.roomId}`;let keys=[k],q=p+1;while(q<=12){const nl=state.lessons[key(gid,d,q)];if(!nl||`${nl.subjectId}|${nl.teacherId}|${nl.roomId}`!==sig)break;keys.push(key(gid,d,q));q++}arr.push({gid,d,start:p,keys,l});p=q}}
+    return arr;
+  }
+  function renderSmartSuggestions(){
+    ensureBox();const list=document.getElementById('smartOptimizerList');if(!list)return;const g=group();if(!g){list.innerHTML='';return}
+    const suggestions=[];
+    for(const b of blocksForGroup(g.id)){
+      if(b.start<9)continue;const s=subject(b.l.subjectId);if(!s||isActivitySubject(s))continue;
+      let best=null;
+      for(let d=0;d<5;d++)for(const start of [1,6,2,3,4,7,8]){const dest=lessonCanMove(g.id,s,b.keys,d,start);if(!dest)continue;const gain=blockScore(d,start,b.keys.length)-blockScore(b.d,b.start,b.keys.length);if(gain>0&&(!best||gain>best.gain))best={dest,d,start,gain}}
+      if(best)suggestions.push({b,best,s});
+    }
+    suggestions.sort((a,b)=>b.best.gain-a.best.gain);
+    if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้ยังไม่มีคาบท้ายที่สามารถย้ายไปช่วงต้นได้โดยไม่ทำให้ครูหรือนักเรียนชน</div>';return}
+    list.innerHTML=suggestions.slice(0,6).map((x,i)=>`<div class="opt-item"><div><b>แนะนำ: ย้าย ${esc(x.s.code)} ${esc(x.s.name)}</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: ลดการเรียนคาบ 9–12 และให้ความสำคัญกับการเริ่มคาบ ${x.best.start===1?'1 มากที่สุด':x.best.start===6?'6 รองจากคาบ 1':x.best.start}</div></div><button class="btn light" data-opt="${i}">ใช้คำแนะนำนี้</button></div>`).join('');
+    list.querySelectorAll('[data-opt]').forEach(btn=>btn.onclick=()=>{const x=suggestions[+btn.dataset.opt];const vals=x.b.keys.map(k=>state.lessons[k]);x.b.keys.forEach(k=>delete state.lessons[k]);x.best.dest.forEach((k,i)=>state.lessons[k]={...vals[Math.min(i,vals.length-1)]});saveLocal();renderAll();renderSmartSuggestions()});
+  }
+  const prevRenderAll=renderAll;renderAll=function(){prevRenderAll();setTimeout(renderSmartSuggestions,0)};
+  ensureBox();renderSmartSuggestions();
+})();
+</script>
