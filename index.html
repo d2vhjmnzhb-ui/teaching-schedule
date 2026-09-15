@@ -903,3 +903,67 @@ a[x-apple-data-detectors]{
   renderAll();
 })();
 </script>
+<style>
+/* v27 workflow refinements */
+#planPage label:has(#roomNo),#planPage label:has(#groupNo),#planPage label:has(#deptShort),#planPage label:has(#groupCode),#planPage label:has(#advisor),#saveClass{display:none!important}
+.group-admin{margin-top:12px}.group-admin .grid{grid-template-columns:repeat(5,minmax(120px,1fr))}
+@media(max-width:850px){.group-admin .grid{grid-template-columns:1fr 1fr}}
+</style>
+<script>
+(function v27(){
+ const activityRx=/ลูกเสือ|กิจกรรม/i;
+ // รายวิชาทุกชนิดอยู่ในแผน รวมลูกเสือ/กิจกรรม
+ planSubjects=function(pid=state.activePlanId){return state.subjects.filter(s=>s.planId===pid)};
+ const isActivity=s=>!!s&&activityRx.test(String(s.name||''));
+
+ // หน้าแผน: ไม่กรอกห้อง/กลุ่มอีก ย้ายการจัดการห้องเรียนไปหน้า ครู/ห้องเรียน
+ const people=document.querySelector('#peoplePage');
+ if(people&&!document.getElementById('groupAdmin')){
+  const card=document.createElement('div');card.className='card group-admin';card.id='groupAdmin';
+  card.innerHTML='<h2>ห้อง / กลุ่มนักเรียน</h2><p class="muted">สร้างห้องครั้งเดียว แล้วหน้าจัดตารางจะดึงห้องของระดับและชั้นปีในแผนมาให้เลือกอัตโนมัติ</p><div class="grid"><label>ระดับ<select id="gaLevel"><option>ปวช.</option><option>ปวส.</option></select></label><label>ชั้นปี<select id="gaYear"></select></label><label>ห้อง<input id="gaRoom" inputmode="numeric" value="1"></label><label>กลุ่ม<input id="gaGroup" inputmode="numeric" value="1"></label><label>ครูที่ปรึกษา<input id="gaAdvisor"></label></div><div class="actions"><button class="btn primary" id="gaAdd">เพิ่มห้อง/กลุ่ม</button></div><div id="gaList"></div>';
+  people.appendChild(card);
+  const L=card.querySelector('#gaLevel'),Y=card.querySelector('#gaYear');
+  function yrs(){Y.innerHTML=yearOptionsFor(L.value).map(x=>`<option>${x}</option>`).join('')} yrs();L.onchange=yrs;
+  card.querySelector('#gaAdd').onclick=()=>{let lev=normalizeLevel(L.value),yr=Y.value,r=gaRoom.value.trim()||'1',gr=gaGroup.value.trim()||'1';if(state.groups.some(g=>g.level===lev&&String(g.year)===yr&&String(g.roomNo)===r&&String(g.groupNo)===gr))return alert('มีห้อง/กลุ่มนี้แล้ว');let ds=defaultDeptShort(lev),g={id:uid(),level:lev,year:yr,roomNo:r,groupNo:gr,deptShort:ds,advisor:gaAdvisor.value.trim()};rebuildGroupName(g);g.groupCode=`${shortAcademicYear(plan()?.academicYear||2569)}${ds}${yr}/${r}-${gr}`;state.groups.push(g);state.currentGroupId=g.id;renderAll()};
+ }
+ function renderGroupAdmin(){let el=document.getElementById('gaList');if(!el)return;el.innerHTML=state.groups.map(g=>`<div class="subject"><div><b>${esc(g.name)}</b><div class="muted">${esc(g.groupCode||'')} • ครูที่ปรึกษา ${esc(g.advisor||'-')}</div></div><span></span><button class="btn danger" onclick="state.groups=state.groups.filter(x=>x.id!=='${g.id}');renderAll()">ลบ</button></div>`).join('')}
+
+ // เพิ่มครู: ตัวเลือกประเภทชัดเจน
+ const nt=document.getElementById('newTeacher');if(nt&&!document.getElementById('newTeacherType')){let lab=document.createElement('label');lab.innerHTML='ประเภทครู<select id="newTeacherType"><option>ข้าราชการครู</option><option>พนักงานราชการ</option><option>ครูพิเศษสอน</option></select>';nt.closest('.grid3').insertBefore(lab,nt.closest('label').nextSibling)}
+ addTeacher.onclick=()=>{let x=newTeacher.value.trim();if(!x)return;let type=document.getElementById('newTeacherType')?.value||'ข้าราชการครู';let qualification=prompt('วุฒิการศึกษา','')||'';let specialDuty=prompt('หน้าที่พิเศษ','')||'';let defaults=type==='ครูพิเศษสอน'?[0,10]:[specialDuty?12:18,specialDuty?12:0];let inside=Number(prompt('เป้าคาบในต่อสัปดาห์',defaults[0]));let outside=Number(prompt('เป้าคาบนอกต่อสัปดาห์',defaults[1]));state.teachers.push({id:uid(),name:x,type,qualification,specialDuty,special:!!specialDuty.trim(),insideTarget:Number.isFinite(inside)?inside:defaults[0],outsideTarget:Number.isFinite(outside)?outside:defaults[1]});newTeacher.value='';renderAll()};
+
+ // ห้องในหน้าจัดตารางเลือกจากชั้นปีของแผน และครูเลือกได้ทุกคน
+ const oldPicks=renderPicks;
+ renderPicks=function(){
+   oldPicks();
+   let sel=document.getElementById('scheduleGroupPick'),gs=groupsForPlan();
+   if(sel){sel.disabled=false;sel.innerHTML=gs.map(g=>`<option value="${g.id}" ${g.id===state.currentGroupId?'selected':''}>${esc(g.name)}</option>`).join('');if(!gs.length)sel.innerHTML='<option>ยังไม่มีห้อง/กลุ่ม</option>'}
+   teacherPick.disabled=false;roomPick.disabled=false;teacherPick.title='เลือกครูผู้สอนสำหรับวิชานี้';roomPick.title='เลือกห้องสอนสำหรับวิชานี้';
+   const all=planSubjects(),gid=state.currentGroupId,prev=window.__v27Subject||subjectPick.value;
+   const pending=all.filter(s=>usedForGroup(s.id,gid)<Number(s.t||0)+Number(s.p||0));
+   subjectPick.innerHTML=pending.map(s=>{let rem=Number(s.t||0)+Number(s.p||0)-usedForGroup(s.id,gid);return `<option value="${s.id}">${esc(s.code)} ${esc(s.name)} — เหลือ ${rem} ชม.</option>`}).join('');
+   if(pending.some(s=>s.id===prev))subjectPick.value=prev;else if(pending[0])subjectPick.value=pending[0].id;
+   window.__v27Subject=subjectPick.value;
+   let s=subject(subjectPick.value);if(s){if(s.teacherId&&state.teachers.some(t=>t.id===s.teacherId))teacherPick.value=s.teacherId;if(s.roomId)roomPick.value=s.roomId}
+ };
+ subjectPick.onchange=()=>{window.__v27Subject=subjectPick.value;let s=subject(subjectPick.value);if(s){if(s.teacherId)teacherPick.value=s.teacherId;if(s.roomId)roomPick.value=s.roomId}renderStatus()};
+ teacherPick.onchange=()=>{let s=subject(subjectPick.value);if(s)s.teacherId=teacherPick.value;save()};roomPick.onchange=()=>{let s=subject(subjectPick.value);if(s)s.roomId=roomPick.value;save()};
+
+ // ลูกเสือ/กิจกรรมลงได้เฉพาะวันพุธคาบ 7-8; วิชาอื่นห้ามลงช่องนี้
+ const oldToggle=toggleSlot;
+ toggleSlot=function(k){let q=parseKey(k),s=subject(subjectPick.value),activity=isActivity(s),special=q.d===2&&(q.p===7||q.p===8);if(state.lessons[k]){delete state.lessons[k];renderAll();return}if(activity&&!special)return alert('วิชาลูกเสือ/กิจกรรม ลงได้เฉพาะวันพุธ คาบ 7–8');if(!activity&&special)return alert('วันพุธ คาบ 7–8 สงวนสำหรับวิชาลูกเสือ/กิจกรรม');return oldToggle(k)};
+
+ // Auto: 20000 ก่อน, วิชายาวก่อน, เริ่มคาบ 1 หรือ 6; กิจกรรมล็อกพุธ 7-8
+ autoSubject=function(s){
+   let need=(Number(s.t||0)+Number(s.p||0))-usedForGroup(s.id);if(need<=0)return;
+   if(isActivity(s)){for(let p of [7,8]){if(need<=0)break;let k=key(group().id,2,p);if(state.lessons[k])continue;let l={planId:state.activePlanId,groupId:group().id,subjectId:s.id,teacherId:s.teacherId||teacherPick.value,roomId:s.roomId||roomPick.value};if(!conflictsFor(group().id,2,p,l).length){state.lessons[k]=l;need--}}return}
+   while(need>0){let best=null;for(let d=0;d<5;d++)for(let p of [1,6,2,3,4,7,8,9,10,11,12])for(let len=Math.min(need,4);len>=1;len--){let ks=Array.from({length:len},(_,i)=>key(group().id,d,p+i));if(ks.some(k=>state.lessons[k]))continue;let bad=ks.some(k=>{let q=parseKey(k);return q.d===2&&(q.p===7||q.p===8)});if(bad)continue;let trial={planId:state.activePlanId,groupId:group().id,subjectId:s.id,teacherId:s.teacherId||teacherPick.value,roomId:s.roomId||roomPick.value};if(ks.some(k=>{let q=parseKey(k);return conflictsFor(q.gid,q.d,q.p,trial).length}))continue;let sc=len*100+(p===1?80:p===6?70:0)-(p>=9?40:0);if(!best||sc>best.sc)best={ks,sc,trial}}if(!best)break;best.ks.forEach(k=>state.lessons[k]={...best.trial});need-=best.ks.length}
+ };
+ autoAll.onclick=()=>{let keep=state.currentGroupId;groupsForPlan().forEach(g=>{state.currentGroupId=g.id;planSubjects().slice().sort((a,b)=>{let ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;return ap-bp||((b.t+b.p)-(a.t+a.p))}).forEach(autoSubject)});state.currentGroupId=keep;renderAll()};
+
+ // ไม่กันช่องพุธ 7-8 แบบเดิม ให้กฎด้านบนเป็นผู้ควบคุมแทน
+ isBlocked=function(g,d,p){return false};
+ document.querySelector('#schedulePage .notice.good').textContent='วิชาลูกเสือ/กิจกรรมสามารถเพิ่มในแผนได้ และลงได้เฉพาะวันพุธ คาบ 7–8 เท่านั้น';
+ const oldAll=renderAll;renderAll=function(){oldAll();renderGroupAdmin()};renderAll();
+})();
+</script>
