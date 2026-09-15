@@ -1562,3 +1562,62 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   renderAll();
 })();
 </script>
+
+<style>
+/* v40: Auto ทุกวิชา = เฉพาะห้อง/กลุ่มที่กำลังเปิดอยู่ */
+#v40ScopeNote{margin-top:6px;font-size:12px;color:#475467}
+</style>
+<script>
+(function v40StrictGroupScope(){
+  function req(s){return Number(s.t||0)+Number(s.p||0)}
+  function count(sid,gid){
+    return Object.entries(state.lessons).reduce((n,[k,l])=>{
+      const q=parseKey(k);
+      return n+(q.pid===state.activePlanId && q.gid===gid && l.subjectId===sid ? 1:0);
+    },0);
+  }
+  used=function(sid,gid=state.currentGroupId){return count(sid,gid)};
+  window.usedForGroup=function(sid,gid=state.currentGroupId){return count(sid,gid)};
+
+  /* สำคัญ: ปุ่มจัดทุกวิชา ห้ามวนไปจัดห้องอื่น */
+  autoAll.onclick=()=>{
+    const gid=state.currentGroupId;
+    const list=subjectsForCurrentGroup().slice().sort((a,b)=>{
+      const ap=String(a.code||'').startsWith('20000')?0:1;
+      const bp=String(b.code||'').startsWith('20000')?0:1;
+      return ap-bp || (req(b)-req(a));
+    });
+    for(let pass=0;pass<4;pass++){
+      const before=Object.keys(state.lessons).length;
+      for(const s of list){ if(count(s.id,gid)<req(s)) autoSubject(s); }
+      if(Object.keys(state.lessons).length===before)break;
+    }
+    state.currentGroupId=gid;
+    saveLocal();renderAll();
+  };
+
+  /* ล้างเฉพาะห้องที่เปิดอยู่ เพื่อไม่ทำลายตารางห้องอื่น */
+  clearSchedule.onclick=()=>{
+    const g=group(); if(!g)return;
+    if(!confirm(`ล้างตารางเฉพาะ ${g.name} ?\nตารางของห้องอื่นจะไม่ถูกลบ`))return;
+    Object.keys(state.lessons).forEach(k=>{
+      const q=parseKey(k);
+      if(q.pid===state.activePlanId && q.gid===state.currentGroupId) delete state.lessons[k];
+    });
+    saveLocal();renderAll();
+  };
+
+  const allBtn=document.getElementById('autoAll');
+  if(allBtn){allBtn.textContent='จัดทุกวิชาอัตโนมัติ (ห้องนี้)';}
+  const clearBtn=document.getElementById('clearSchedule');
+  if(clearBtn){clearBtn.textContent='ล้างตารางห้องนี้';}
+
+  const row=allBtn?.parentElement;
+  if(row&&!document.getElementById('v40ScopeNote')){
+    const n=document.createElement('div');n.id='v40ScopeNote';
+    n.textContent='Auto และการล้างตารางจะทำเฉพาะห้อง/กลุ่มที่เลือกอยู่เท่านั้น ไม่กระทบห้องอื่น';
+    row.insertAdjacentElement('afterend',n);
+  }
+  renderAll();
+})();
+</script>
