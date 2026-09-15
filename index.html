@@ -510,7 +510,7 @@ function renderPreview(mode=window.previewMode||'student'){
    cells+=`<td class="${blocked?'locked print-empty':act&&mode==='student'?'activity':''}">${blocked?'':content}</td>`
   }sched+=`<tr><th colspan="3">วัน${d}</th>${di===0?'<td class="assembly-cell assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}${cells}</tr>`});
  let subs=mode==='student'?state.subjects.filter(s=>s.groupId===g.id&&!/กิจกรรม|ลูกเสือ/i.test(s.name||'')):state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
- let course='';let half=Math.ceil(subs.length/2)||1;for(let i=0;i<half;i++){let a=subs[i],b=subs[i+half];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`} let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row"><td colspan="9"></td><td colspan="5">รวมทั้งหมด</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
+ let course='';const SIDE_SLOTS=8;for(let i=0;i<SIDE_SLOTS;i++){let a=subs[i],b=subs[i+SIDE_SLOTS];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`} let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row"><td colspan="9"></td><td colspan="5">รวมทั้งหมด</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
  let extra=mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:`<div>วุฒิการศึกษา ${esc(t?.qualification||'-')}</div><div>หน้าที่พิเศษ ${esc(t?.specialDuty||(t?.special?'มีหน้าที่พิเศษ':'-'))}</div>`;
  preview.innerHTML=`<div class="excel-sheet"><div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน ${esc(plan().term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} ${esc(who)}</div>${extra}<div>แผนกวิชา ช่างไฟฟ้ากำลัง</div></div></div><table class="excel-courses"><tr><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th></tr>${course}</table></div><table class="excel-schedule"><tr><th colspan="3">เวลา</th><th>07:45-08:00</th>${periodTimes.map(t=>`<th>${t}</th>`).join('')}</tr><tr><th colspan="3">วัน/คาบ</th><th>กิจกรรมหน้าเสาธง</th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table></div>`;
 }
@@ -631,6 +631,11 @@ window.addEventListener('load',()=>{
 });
 </script>
 
+<style>
+/* v20: ตัวเลขและข้อความในตารางไม่มีเส้นใต้ทุกกรณี */
+.schedule-paper, .schedule-paper *, .excel-schedule, .excel-schedule *, .excel-courses, .excel-courses *{text-decoration:none!important;text-decoration-line:none!important;}
+.excel-courses a,.excel-schedule a,.schedule-paper a{color:inherit!important;text-decoration:none!important;}
+</style>
 </body></html>
 <!-- v19 student-first scheduling refinements -->
 <style>
