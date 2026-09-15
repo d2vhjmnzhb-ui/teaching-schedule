@@ -2012,7 +2012,7 @@ var saveLocal = (typeof save === 'function') ? save : function(){};
  renderPicks=function(){const keepS=$('subjectPick')?.value||'';const keepT=$('teacherPick')?.value||'';const keepR=$('roomPick')?.value||'';baseRenderPicks();if(keepS&&[...($('subjectPick')?.options||[])].some(o=>o.value===keepS))$('subjectPick').value=keepS;if(keepT&&[...($('teacherPick')?.options||[])].some(o=>o.value===keepT))$('teacherPick').value=keepT;if(keepR&&[...($('roomPick')?.options||[])].some(o=>o.value===keepR))$('roomPick').value=keepR};
  function clearGhosts(){document.querySelectorAll('#studentTable .v44ghost').forEach(x=>x.remove());document.querySelectorAll('#studentTable .v44-ghost-ok,#studentTable .v44-ghost-joint,#studentTable .v44-ghost-busy').forEach(x=>x.classList.remove('v44-ghost-ok','v44-ghost-joint','v44-ghost-busy'))}
  function selectedLessonForPreview(s){const tid=$('teacherPick')?.value||s?.teacherId||'';let rid=$('roomPick')?.value||s?.roomId||'';return {planId:state.activePlanId,groupId:state.currentGroupId,subjectId:s?.id,teacherId:tid,roomId:rid}}
- function paintPreview(){clearGhosts();const s=subject($('subjectPick')?.value),g=currentGroup(),table=$('studentTable');if(!s||!g||!table)return;const trial=selectedLessonForPreview(s);if(!trial.teacherId)return;table.querySelectorAll('.slot[data-key]').forEach(td=>{if(td.querySelector('.lesson')||/พักกลางวัน/.test(td.textContent||''))return;const q=parseKey(td.dataset.key);if(q.p===5)return;const act=(typeof isActivitySubject==='function'?isActivitySubject(s):/ลูกเสือ|กิจกรรม/.test(s.name||''));if((act&&!(q.d===2&&(q.p===7||q.p===8)))||(!act&&q.d===2&&(q.p===7||q.p===8))return;const j=existingJointAt(q.d,q.p,s.id,trial.teacherId,g.id);let busy=null;if(!j){for(const [k,l] of Object.entries(state.lessons||{})){const z=parseKey(k);if(String(z.pid)!==String(state.activePlanId)||z.d!==q.d||z.p!==q.p||String(z.gid)===String(g.id))continue;if(String(l.teacherId||'')===String(trial.teacherId||'')){busy=l;break}}}const ghost=document.createElement('div');ghost.className='v44ghost '+(j?'joint':busy?'busy':'ok');if(j){ghost.textContent=`${s.name} • เรียนรวมได้`;td.classList.add('v44-ghost-joint')}else if(busy){ghost.textContent=`${subject(busy.subjectId)?.name||'ครูไม่ว่าง'} • ครูไม่ว่าง`;td.classList.add('v44-ghost-busy')}else{ghost.textContent=s.name;td.classList.add('v44-ghost-ok')}td.appendChild(ghost)})}
+ function paintPreview(){clearGhosts();const s=subject($('subjectPick')?.value),g=currentGroup(),table=$('studentTable');if(!s||!g||!table)return;const trial=selectedLessonForPreview(s);if(!trial.teacherId)return;table.querySelectorAll('.slot[data-key]').forEach(td=>{if(td.querySelector('.lesson')||/พักกลางวัน/.test(td.textContent||''))return;const q=parseKey(td.dataset.key);if(q.p===5)return;const act=(typeof isActivitySubject==='function'?isActivitySubject(s):/ลูกเสือ|กิจกรรม/.test(s.name||''));if((act&&!(q.d===2&&(q.p===7||q.p===8)))||(!act&&q.d===2&&(q.p===7||q.p===8)))return;const j=existingJointAt(q.d,q.p,s.id,trial.teacherId,g.id);let busy=null;if(!j){for(const [k,l] of Object.entries(state.lessons||{})){const z=parseKey(k);if(String(z.pid)!==String(state.activePlanId)||z.d!==q.d||z.p!==q.p||String(z.gid)===String(g.id))continue;if(String(l.teacherId||'')===String(trial.teacherId||'')){busy=l;break}}}const ghost=document.createElement('div');ghost.className='v44ghost '+(j?'joint':busy?'busy':'ok');if(j){ghost.textContent=`${s.name} • เรียนรวมได้`;td.classList.add('v44-ghost-joint')}else if(busy){ghost.textContent=`${subject(busy.subjectId)?.name||'ครูไม่ว่าง'} • ครูไม่ว่าง`;td.classList.add('v44-ghost-busy')}else{ghost.textContent=s.name;td.classList.add('v44-ghost-ok')}td.appendChild(ghost)})}
  // Manual placement: if another group already has the same subject with the same teacher, reuse that room automatically.
  toggleSlot=function(k){const q=parseKey(k),g=state.groups.find(x=>String(x.id)===String(q.gid));if(!g)return;if(typeof isBlocked==='function'&&isBlocked(g,q.d,q.p))return;if(state.lessons[k]){delete state.lessons[k];save();renderAll();return}const s=subject($('subjectPick')?.value);if(!s)return alert('กรุณาเลือกรายวิชา');if(isActivitySubject(s)&&!activitySlot(q.d,q.p))return alert('วิชาลูกเสือ/กิจกรรมองค์การวิชาชีพ ลงได้เฉพาะวันพุธ คาบ 7–8');if(!isActivitySubject(s)&&activitySlot(q.d,q.p))return alert('วันพุธ คาบ 7–8 สงวนสำหรับลูกเสือ/กิจกรรมองค์การวิชาชีพ');if(exactCount(s.id,g.id)>=req(s))return alert('วิชานี้จัดครบจำนวนชั่วโมงแล้ว');const tid=$('teacherPick')?.value||s.teacherId||'';const joint=existingJointAt(q.d,q.p,s.id,tid,g.id);const rid=joint?.roomId||$('roomPick')?.value||s.roomId||'';const l={planId:state.activePlanId,groupId:g.id,subjectId:s.id,teacherId:tid,roomId:rid};const c=conflictsFor(g.id,q.d,q.p,l);if(c.length&&!confirm('คาบนี้ชน: '+c.join(', ')+'\nต้องการลงต่อหรือไม่?'))return;state.lessons[k]=l;save();renderAll()};
  // Combine identical simultaneous classes in teacher view/PDF: one subject, one room, multiple groups on the last line.
@@ -2023,5 +2023,93 @@ var saveLocal = (typeof save === 'function') ? save : function(){};
  document.addEventListener('change',e=>{if(['subjectPick','teacherPick','roomPick','scheduleGroupPick'].includes(e.target?.id))setTimeout(paintPreview,0)},true);
  const baseRenderAll45=renderAll;renderAll=function(){baseRenderAll45();setTimeout(paintPreview,0)};
  renderAll();
+})();
+</script>
+
+<style>
+/* v46: Global Auto Scheduler */
+#autoResultV46{margin-top:10px}
+</style>
+<script>
+(function v46GlobalAutoScheduler(){
+  const autoAllBtn=document.getElementById('autoAll');
+  if(!autoAllBtn)return;
+  const tag=document.querySelector('header .tag');if(tag)tag.textContent='Professional v18 • College System • Global Auto Schedule';
+
+  function currentNeed(gid,s){return Math.max(0,Number(s.t||0)+Number(s.p||0)-used(s.id,gid))}
+  function groupSubjects(g){
+    const keep=state.currentGroupId;state.currentGroupId=g.id;
+    const a=(typeof subjectsForCurrentGroup==='function'?subjectsForCurrentGroup():planSubjects()).slice();
+    state.currentGroupId=keep;return a;
+  }
+  function candidateList(gid,s,need){
+    const tid=s.teacherId||teacherPick.value;
+    let rs=state.rooms.filter(r=>r.teacherId===tid);
+    if(!rs.length&&s.roomId&&room(s.roomId))rs=[room(s.roomId)];
+    const roomIds=rs.length?rs.map(r=>r.id):[s.roomId||roomPick.value].filter(Boolean);
+    const starts=[1,6,2,3,7,8,4,9,10,11,12],out=[];
+    for(let d=0;d<5;d++)for(const start of starts)for(let len=Math.min(need,4);len>=1;len--){
+      const ps=Array.from({length:len},(_,i)=>start+i);
+      if(ps.some(p=>p>12||p===5||activitySlot(d,p)))continue;
+      const ks=ps.map(p=>key(gid,d,p));if(ks.some(k=>state.lessons[k]))continue;
+      for(const rid of roomIds){
+        const trial={planId:state.activePlanId,groupId:gid,subjectId:s.id,teacherId:tid,roomId:rid};
+        if(ks.some(k=>{const q=parseKey(k);return conflictsFor(gid,q.d,q.p,trial).length}))continue;
+        let score=len*250+(start===1?500:0)+(start===6?400:0)-(start>=9?1000:0);
+        const sameDay=Object.entries(state.lessons).filter(([k,l])=>{const q=parseKey(k);return q.pid===state.activePlanId&&q.gid===gid&&q.d===d&&l.subjectId===s.id}).length;
+        score-=sameDay*180;out.push({ks,trial,score,len});
+      }
+    }
+    return out.sort((a,b)=>b.score-a.score||b.len-a.len);
+  }
+  function placeActivity(gid,s){
+    const keep=state.currentGroupId;state.currentGroupId=gid;autoSubject(s);state.currentGroupId=keep;
+  }
+  function resultBox(){
+    let b=document.getElementById('autoResultV46');if(b)return b;
+    b=document.createElement('div');b.id='autoResultV46';autoAllBtn.parentElement.appendChild(b);return b;
+  }
+  function showResult(before,after,left){
+    const b=resultBox(),placed=after-before;
+    if(!left.length){b.className='notice good';b.innerHTML=`จัดตารางอัตโนมัติสำเร็จ • เพิ่ม ${placed} คาบ • ครบทุกวิชาที่สามารถจัดในแผนนี้`;return}
+    b.className='errorbox';
+    b.innerHTML=`<b>จัดเพิ่ม ${placed} คาบ • ยังเหลือ ${left.reduce((n,x)=>n+x.need,0)} คาบ</b><br>`+
+      left.slice(0,12).map(x=>`${esc(x.group)} — ${esc(x.code)} ${esc(x.name)} เหลือ ${x.need} คาบ`).join('<br>')+
+      (left.length>12?'<br>...':'' )+'<br><span class="muted">สาเหตุหลักคือเวลาครู/กลุ่มเรียนที่เหลือชนกัน ระบบจะไม่ฝืนลงคาบที่ชน</span>';
+  }
+  function countLessons(){return Object.keys(state.lessons).filter(k=>parseKey(k).pid===state.activePlanId).length}
+
+  autoAllBtn.onclick=()=>{
+    const keep=state.currentGroupId,before=countLessons(),gs=groupsForPlan();
+    // กิจกรรมที่มีช่องตายตัวจัดก่อน
+    for(const g of gs){for(const s of groupSubjects(g)){if(isActivitySubject(s)&&currentNeed(g.id,s)>0)placeActivity(g.id,s)}}
+
+    // Global constraint-first: ทุกห้องแข่งขันกันตามจำนวนช่องที่เหลือจริง
+    // แทนการจัดห้องแรกจนเต็มแล้วค่อยไปห้องถัดไป ซึ่งทำให้ห้องท้าย ๆ ไม่มีช่องครูเหลือ
+    let guard=0;
+    while(guard++<1000){
+      const jobs=[];
+      for(const g of gs){
+        for(const s of groupSubjects(g)){
+          if(isActivitySubject(s))continue;
+          const need=currentNeed(g.id,s);if(need<=0)continue;
+          const cand=candidateList(g.id,s,need);
+          jobs.push({g,s,need,cand});
+        }
+      }
+      if(!jobs.length)break;
+      const feasible=jobs.filter(j=>j.cand.length);
+      if(!feasible.length)break;
+      // วิชาที่มีทางเลือกน้อยที่สุดก่อน; ถ้าเท่ากันให้วิชาชั่วโมงมากก่อน
+      feasible.sort((a,b)=>a.cand.length-b.cand.length||b.need-a.need||String(a.s.code).localeCompare(String(b.s.code)));
+      const j=feasible[0],best=j.cand[0];
+      best.ks.forEach(k=>state.lessons[k]={...best.trial});
+    }
+    state.currentGroupId=keep;
+    const left=[];
+    for(const g of gs)for(const s of groupSubjects(g)){const need=currentNeed(g.id,s);if(need>0)left.push({group:g.name,code:s.code,name:s.name,need})}
+    renderAll();showResult(before,countLessons(),left);save();
+    if(typeof renderSmartSuggestions==='function')setTimeout(renderSmartSuggestions,0);
+  };
 })();
 </script>
