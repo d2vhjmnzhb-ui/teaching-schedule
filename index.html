@@ -221,11 +221,15 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <section id="planPage" class="page">
 <div class="card"><h2>ชั้นเรียน</h2><div class="grid">
 <label>ระดับ<select id="level"><option>ปวช.</option><option>ปวส.</option></select></label>
-<label>ชั้นปี<select id="year"><option>1</option><option>2</option><option>3</option></select></label>
-<label>ห้อง / กลุ่ม<input id="group" value="ชฟ.1/1 กลุ่ม 1"></label>
-<label>รหัสกลุ่มเรียน<input id="groupCode" placeholder="เช่น 69ชฟ.1/1-1"></label>
+<label>ชั้นปี<select id="year"></select></label>
+<label>ห้อง<input id="roomNo" inputmode="numeric" value="1" placeholder="เช่น 1"></label>
+<label>กลุ่ม<input id="groupNo" inputmode="numeric" value="1" placeholder="เช่น 1"></label>
+<label>ชื่อย่อแผนก<input id="deptShort" value="ชฟ." placeholder="เช่น ชฟ. / ชฟส."></label>
+<label>รหัสกลุ่มเรียน<input id="groupCode" placeholder="ระบบสร้างให้ได้อัตโนมัติ"></label>
 <label>ครูที่ปรึกษา<input id="advisor" placeholder="ชื่อครูที่ปรึกษา"></label>
-<label>ภาคเรียน<input id="term" value="1/2569"></label>
+<label>ภาคเรียน<select id="semester"><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option><option value="summer">ภาคฤดูร้อน</option></select></label>
+<label>ปีการศึกษา<input id="academicYear" inputmode="numeric" value="2569" placeholder="2569"></label>
+<label>แสดงภาคเรียน<input id="term" value="1/69" disabled></label>
 </div><div class="actions"><button class="btn primary" id="saveClass">บันทึกชั้นเรียน</button></div></div>
 <div class="card"><h2>รายวิชาตามแผนการเรียน</h2><p class="muted">ท = ทฤษฎี, ป = ปฏิบัติ, น = หน่วยกิต และระบบใช้ ท+ป เป็นจำนวนคาบต่อสัปดาห์</p>
 <div id="subjects"></div><div class="actions"><button class="btn primary" id="addSubject">+ เพิ่มรายวิชา</button><button class="btn light" id="resetDemo">คืนค่าตัวอย่าง</button></div></div>
@@ -258,7 +262,7 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 </main></div>
 
 <script>
-const KEY='collegeSystemScheduleV9';
+const KEY='collegeSystemScheduleV10';
 const days=['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'];
 const periodTimes=['08.00-09.00','09.00-10.00','10.00-11.00','11.00-12.00','12.00-13.00','13.00-14.00','14.00-15.00','15.00-16.00','16.00-17.00','17.00-18.00','18.00-19.00','19.00-20.00'];
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -269,15 +273,15 @@ function demo(){
  const s1=uid(),s2=uid(),s3=uid(),s4=uid();
  return {
   activePlanId:'plan1',
-  plans:[{id:'plan1',name:'แผนหลัก ภาคเรียน 1/2569',term:'1/2569'}],
+  plans:[{id:'plan1',name:'ปวช. ปี 1 • 1/69',level:'ปวช.',year:'1',semester:'1',academicYear:'2569',term:'1/69'}],
   teachers:[
    {id:t1,name:'นายชัชวาล รักษาทรัพย์',type:'ข้าราชการครู',special:true,insideTarget:12,outsideTarget:12},
    {id:t2,name:'ครูตัวอย่าง 2',type:'ครูพิเศษ',special:false,insideTarget:0,outsideTarget:10}
   ],
   rooms:[{id:r1,name:'636'},{id:r2,name:'634'},{id:r3,name:'637'}],
   groups:[
-   {id:g1,level:'ปวช.',year:'1',name:'ชฟ.1/1 กลุ่ม 1',groupCode:'69ชฟ.1/1-1',advisor:'นายชัชวาล รักษาทรัพย์'},
-   {id:g2,level:'ปวส.',year:'1',name:'ชฟส.1/1 กลุ่ม 1',groupCode:'69ชฟส.1/1-1',advisor:'ครูตัวอย่าง 2'}
+   {id:g1,level:'ปวช.',year:'1',roomNo:'1',groupNo:'1',deptShort:'ชฟ.',name:'ชฟ.1/1 ก.1',groupCode:'69ชฟ.1/1-1',advisor:'นายชัชวาล รักษาทรัพย์'},
+   {id:g2,level:'ปวส.',year:'1',roomNo:'1',groupNo:'1',deptShort:'ชฟส.',name:'ชฟส.1/1 ก.1',groupCode:'69ชฟส.1/1-1',advisor:'ครูตัวอย่าง 2'}
   ],
   subjects:[
    {id:s1,groupId:g1,code:'20104-2002',name:'วงจรไฟฟ้ากระแสตรง',t:1,p:3,n:2,teacherId:t1,roomId:r1},
@@ -293,6 +297,14 @@ let state;
 try{state=JSON.parse(localStorage.getItem(KEY))||demo()}catch(e){state=demo()}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function plan(){return state.plans.find(x=>x.id===state.activePlanId)||state.plans[0]}
+function shortAcademicYear(y){let n=String(y||'2569').replace(/\D/g,'');return n.slice(-2)||'69'}
+function termLabel(sem,y){let yy=shortAcademicYear(y);return sem==='summer'?`ฤดูร้อน/${yy}`:`${sem||1}/${yy}`}
+function normalizeLevel(v){return String(v||'ปวช.').includes('ปวส')?'ปวส.':'ปวช.'}
+function yearOptionsFor(level){return normalizeLevel(level)==='ปวส.'?['1','2']:['1','2','3']}
+function defaultDeptShort(level){return normalizeLevel(level)==='ปวส.'?'ชฟส.':'ชฟ.'}
+function rebuildGroupName(g){g.level=normalizeLevel(g.level);g.year=String(g.year||'1');g.roomNo=String(g.roomNo||'1').trim();g.groupNo=String(g.groupNo||'1').trim();g.deptShort=(g.deptShort||defaultDeptShort(g.level)).trim();g.name=`${g.deptShort}${g.year}/${g.roomNo} ก.${g.groupNo}`;return g.name}
+function migrateState(){state.plans=state.plans||[];state.groups=state.groups||[];state.plans.forEach(p=>{p.level=normalizeLevel(p.level||'ปวช.');p.year=String(p.year||'1');p.semester=String(p.semester||((p.term||'1').match(/^([^/]+)/)||[])[1]||'1');p.academicYear=String(p.academicYear||('25'+String(p.term||'69').split('/').pop()));p.term=termLabel(p.semester,p.academicYear);p.name=`${p.level} ปี ${p.year} • ${p.term}`});state.groups.forEach(g=>{g.level=normalizeLevel(g.level);g.year=String(g.year||'1');if(!g.roomNo){let m=String(g.name||'').match(/\/(\d+)/);g.roomNo=m?m[1]:'1'}if(!g.groupNo){let m=String(g.name||'').match(/(?:ก\.|กลุ่ม\s*)(\d+)/);g.groupNo=m?m[1]:'1'}if(!g.deptShort)g.deptShort=String(g.name||'').match(/^([^0-9]+)/)?.[1]?.trim()||defaultDeptShort(g.level);rebuildGroupName(g)})}
+migrateState();
 function group(){return state.groups.find(x=>x.id===state.currentGroupId)||state.groups[0]}
 function subject(id){return state.subjects.find(x=>x.id===id)}
 function teacher(id){return state.teachers.find(x=>x.id===id)}
@@ -400,7 +412,7 @@ function renderPicks(){
  teacherView.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);return `<option value="${t.id}">${esc(t.name)} • ใน ${L.inside}/${t.insideTarget||0} • นอก ${L.outside}/${t.outsideTarget||0} • รวม ${L.inside+L.outside} ชม.</option>`}).join('');
  let tv=teacher(teacherView.value||state.teachers[0]?.id),TL=tv?teacherLoad(tv.id):{inside:0,outside:0};let tvs=document.getElementById('teacherViewStatus');if(tvs&&tv)tvs.textContent=`${tv.name} — คาบใน ${TL.inside}/${tv.insideTarget||0} • คาบนอก ${TL.outside}/${tv.outsideTarget||0} • รวม ${TL.inside+TL.outside} ชม.`;
  roomPick.innerHTML=state.rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
- level.value=g.level;year.value=g.year;group.value=g.name;groupCode.value=g.groupCode||'';advisor.value=g.advisor||'';term.value=plan().term;groupShow.value=g.name;
+ level.value=g.level;year.innerHTML=yearOptionsFor(g.level).map(y=>`<option ${String(g.year)===y?'selected':''}>${y}</option>`).join('');roomNo.value=g.roomNo||'1';groupNo.value=g.groupNo||'1';deptShort.value=g.deptShort||defaultDeptShort(g.level);groupCode.value=g.groupCode||'';advisor.value=g.advisor||'';semester.value=plan().semester||'1';academicYear.value=plan().academicYear||'2569';term.value=termLabel(semester.value,academicYear.value);groupShow.value=g.name;
 }
 function teacherLoad(tid){
  let inside=0,outside=0;
@@ -515,7 +527,7 @@ function renderAll(){renderSubjects();renderPicks();renderLists();renderStudent(
 function goPage(id){let b=[...nav.querySelectorAll('button')].find(x=>x.dataset.page===id);if(b)b.click()}
 nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(b.dataset.page).classList.add('active');document.body.classList.toggle('home-mode',b.dataset.page==='homePage');renderAll()});document.body.classList.add('home-mode');
 saveClass.onclick=()=>{
- let g=group();g.level=level.value;g.year=year.value;g.name=group.value.trim()||g.name;g.groupCode=groupCode.value.trim();g.advisor=advisor.value.trim();plan().term=term.value.trim()||plan().term;renderAll();alert('บันทึกข้อมูลห้องแล้ว')
+ let g=group();g.level=normalizeLevel(level.value);g.year=year.value;g.roomNo=roomNo.value.trim()||'1';g.groupNo=groupNo.value.trim()||'1';g.deptShort=deptShort.value.trim()||defaultDeptShort(g.level);rebuildGroupName(g);g.groupCode=groupCode.value.trim()||`${shortAcademicYear(academicYear.value)}${g.deptShort}${g.year}/${g.roomNo}-${g.groupNo}`;g.advisor=advisor.value.trim();let p=plan();p.level=g.level;p.year=g.year;p.semester=semester.value;p.academicYear=academicYear.value.trim()||'2569';p.term=termLabel(p.semester,p.academicYear);p.name=`${p.level} ปี ${p.year} • ${p.term}`;renderAll();alert('บันทึกข้อมูลห้องและแผนแล้ว')
 };
 addSubject.onclick=()=>{
  let code=prompt('รหัสวิชา','20104-0000');if(code===null)return;let name=prompt('ชื่อรายวิชา');if(!name)return;
@@ -537,19 +549,20 @@ studentPreviewBtn.onclick=()=>renderPreview('student');teacherPreviewBtn.onclick
 document.addEventListener('DOMContentLoaded',()=>{});
 let firstCard=document.querySelector('#planPage .card');
 if(firstCard){
- let box=document.createElement('div');box.className='card no-print';box.innerHTML=`<h2>แผนตารางและห้องเรียน</h2><div class="planbar"><label>แผน<select id="planSelect"></select></label><label>ห้อง/กลุ่ม<select id="groupSelect"></select></label><button class="btn primary" id="newPlanBtn">สร้างแผนใหม่</button><button class="btn light" id="copyPlanBtn">คัดลอกแผน</button><button class="btn primary" id="newGroupBtn">เพิ่มห้อง/กลุ่ม</button><button class="btn light" id="backupBtn">สำรอง JSON</button><button class="btn light" id="restoreBtn">นำเข้า JSON</button><input type="file" id="restoreFile" accept=".json" class="hide"></div>`;
+ let box=document.createElement('div');box.className='card no-print';box.innerHTML=`<h2>แผนการเรียนตามระดับ ชั้นปี และภาคเรียน</h2><div class="planbar"><label>แผน<select id="planSelect"></select></label><label>ห้อง/กลุ่ม<select id="groupSelect"></select></label><button class="btn primary" id="newPlanBtn">เพิ่มแผน</button><button class="btn light" id="copyPlanBtn">คัดลอกแผน</button><button class="btn primary" id="newGroupBtn">เพิ่มห้อง/กลุ่ม</button><button class="btn light" id="backupBtn">สำรอง JSON</button><button class="btn light" id="restoreBtn">นำเข้า JSON</button><input type="file" id="restoreFile" accept=".json" class="hide"></div>`;
  firstCard.parentElement.insertBefore(box,firstCard);
- function refreshSelectors(){planSelect.innerHTML=state.plans.map(p=>`<option value="${p.id}" ${p.id===state.activePlanId?'selected':''}>${esc(p.name)}</option>`).join('');groupSelect.innerHTML=state.groups.map(g=>`<option value="${g.id}" ${g.id===state.currentGroupId?'selected':''}>${esc(g.level)} ${esc(g.name)}</option>`).join('')}
+ function refreshSelectors(){planSelect.innerHTML=state.plans.map(p=>`<option value="${p.id}" ${p.id===state.activePlanId?'selected':''}>${esc(p.name)}</option>`).join('');let p=plan();let gs=state.groups.filter(g=>g.level===p.level&&String(g.year)===String(p.year));if(!gs.length)gs=state.groups;if(!gs.some(g=>g.id===state.currentGroupId)&&gs[0])state.currentGroupId=gs[0].id;groupSelect.innerHTML=gs.map(g=>`<option value="${g.id}" ${g.id===state.currentGroupId?'selected':''}>${esc(g.name)}</option>`).join('')}
  planSelect.onchange=()=>{state.activePlanId=planSelect.value;renderAll();refreshSelectors()};
  groupSelect.onchange=()=>{state.currentGroupId=groupSelect.value;renderAll();refreshSelectors()};
- newPlanBtn.onclick=()=>{let name=prompt('ชื่อแผนใหม่',`แผนใหม่ ${new Date().toLocaleDateString('th-TH')}`);if(!name)return;let id=uid();state.plans.push({id,name,term:plan().term});state.activePlanId=id;renderAll();refreshSelectors()};
+ newPlanBtn.onclick=()=>{let lev=normalizeLevel(prompt('ระดับ ปวช. หรือ ปวส.','ปวช.')||'');if(!lev)return;let max=lev==='ปวส.'?2:3;let yr=prompt(`ชั้นปี (1-${max})`,'1');if(!yr||+yr<1||+yr>max)return alert('ชั้นปีไม่ถูกต้อง');let sem=prompt('ภาคเรียน: 1, 2 หรือ summer','1');if(!['1','2','summer'].includes(sem))return alert('ภาคเรียนไม่ถูกต้อง');let ay=prompt('ปีการศึกษา','2569')||'2569';let id=uid(),tm=termLabel(sem,ay);state.plans.push({id,level:lev,year:String(yr),semester:sem,academicYear:ay,term:tm,name:`${lev} ปี ${yr} • ${tm}`});state.activePlanId=id;let match=state.groups.find(g=>g.level===lev&&String(g.year)===String(yr));if(match)state.currentGroupId=match.id;renderAll();refreshSelectors()};
  copyPlanBtn.onclick=()=>{let old=state.activePlanId,name=prompt('ชื่อแผนสำเนา',plan().name+' สำเนา');if(!name)return;let id=uid();state.plans.push({id,name,term:plan().term});for(const [k,l] of Object.entries({...state.lessons})){let q=parseKey(k);if(q.pid===old)state.lessons[`${id}|${q.gid}|${q.d}|${q.p}`]={...l,planId:id}}state.activePlanId=id;renderAll();refreshSelectors()};
- newGroupBtn.onclick=()=>{let lev=prompt('ระดับ ปวช. หรือ ปวส.','ปวช.');if(!lev)return;let name=prompt('ชื่อห้อง/กลุ่ม','ชฟ.1/1 กลุ่ม 1');if(!name)return;let id=uid();state.groups.push({id,level:lev,year:'1',name,groupCode:'',advisor:''});state.currentGroupId=id;renderAll();refreshSelectors()};
+ newGroupBtn.onclick=()=>{let p=plan(),lev=p.level||'ปวช.',yr=String(p.year||'1');let rn=prompt(`ห้อง (${lev} ปี ${yr})`,'1');if(!rn)return;let gn=prompt('กลุ่ม','1');if(!gn)return;let ds=prompt('ชื่อย่อแผนก',defaultDeptShort(lev))||defaultDeptShort(lev);let id=uid(),g={id,level:lev,year:yr,roomNo:rn,groupNo:gn,deptShort:ds,groupCode:'',advisor:''};rebuildGroupName(g);state.groups.push(g);state.currentGroupId=id;renderAll();refreshSelectors()};
  backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='college-schedule-backup.json';a.click();URL.revokeObjectURL(a.href)};
  restoreBtn.onclick=()=>restoreFile.click();
  restoreFile.onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);renderAll();refreshSelectors();alert('นำเข้าข้อมูลแล้ว')}catch(err){alert('ไฟล์ JSON ไม่ถูกต้อง')}};r.readAsText(f)};
  refreshSelectors();
 }
+level.onchange=()=>{let opts=yearOptionsFor(level.value);year.innerHTML=opts.map(y=>`<option>${y}</option>`).join('');deptShort.value=defaultDeptShort(level.value);term.value=termLabel(semester.value,academicYear.value)};year.onchange=()=>{};semester.onchange=()=>term.value=termLabel(semester.value,academicYear.value);academicYear.oninput=()=>term.value=termLabel(semester.value,academicYear.value);
 renderAll();
 </script>
 
