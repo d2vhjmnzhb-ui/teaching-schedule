@@ -1621,3 +1621,99 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   renderAll();
 })();
 </script>
+
+<style>
+/* v41: runtime repair for room-scoped actions + cloud URL */
+#v41RuntimeMsg{margin-top:8px;font-size:13px;line-height:1.45}
+</style>
+<script>
+(function v41RuntimeRepair(){
+  const $=id=>document.getElementById(id);
+  function msg(text,bad=false){
+    let n=$('v41RuntimeMsg');
+    const anchor=$('v40ScopeNote')||$('autoAll');
+    if(!n&&anchor){n=document.createElement('div');n.id='v41RuntimeMsg';anchor.insertAdjacentElement('afterend',n)}
+    if(n){n.className=bad?'bad':'notice';n.textContent=text||''}
+  }
+  function req(s){return Number(s?.t||0)+Number(s?.p||0)}
+  function strictCount(sid,gid){
+    return Object.entries(state.lessons||{}).reduce((n,[k,l])=>{const q=parseKey(k);return n+(q.pid===state.activePlanId&&q.gid===gid&&l.subjectId===sid?1:0)},0);
+  }
+  used=function(sid,gid=state.currentGroupId){return strictCount(sid,gid)};
+  window.usedForGroup=used;
+
+  function currentSubjects(){return (typeof subjectsForCurrentGroup==='function'?subjectsForCurrentGroup():planSubjects()).slice()}
+  function roomReadyForSubject(s){
+    const tid=s?.teacherId||$('teacherPick')?.value||'';
+    const assigned=(state.rooms||[]).filter(r=>r.teacherId===tid);
+    const saved=s?.roomId&&state.rooms.some(r=>r.id===s.roomId)?room(s.roomId):null;
+    return {tid,rooms:assigned.length?assigned:(saved?[saved]:[])};
+  }
+  function doAutoCurrentRoom(){
+    const g=group(); if(!g){msg('กรุณาเลือกห้อง / กลุ่มก่อน',true);return}
+    const list=currentSubjects().sort((a,b)=>{const ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;return ap-bp||req(b)-req(a)});
+    const noRoom=list.filter(s=>strictCount(s.id,g.id)<req(s)&&!roomReadyForSubject(s).rooms.length);
+    if(noRoom.length){
+      msg('ยังจัดอัตโนมัติไม่ได้: มี '+noRoom.length+' วิชาที่ครูผู้สอนยังไม่มีห้องเรียนที่กำหนดไว้ กรุณาไปหน้า “ครู / ห้องเรียน” แล้วกำหนดห้องให้ครูก่อน',true);
+      return;
+    }
+    let changed=false;
+    for(let pass=0;pass<8;pass++){
+      const before=Object.keys(state.lessons||{}).length;
+      for(const s of list){if(strictCount(s.id,g.id)<req(s))autoSubject(s)}
+      if(Object.keys(state.lessons||{}).length>before)changed=true; else break;
+    }
+    saveLocal();renderAll();
+    const missing=list.filter(s=>strictCount(s.id,g.id)<req(s));
+    msg(missing.length?'Auto ทำงานแล้ว แต่ยังมี '+missing.length+' วิชาที่หาช่องว่างไม่ได้':'จัดทุกวิชาอัตโนมัติสำหรับ '+g.name+' เรียบร้อย',!!missing.length);
+  }
+  function doClearCurrentRoom(){
+    const g=group(); if(!g){msg('กรุณาเลือกห้อง / กลุ่มก่อน',true);return}
+    const keys=Object.keys(state.lessons||{}).filter(k=>{const q=parseKey(k);return q.pid===state.activePlanId&&q.gid===g.id});
+    if(!keys.length){msg('ห้อง '+g.name+' ยังไม่มีคาบที่ต้องล้าง');return}
+    if(!window.confirm('ล้างตารางเฉพาะ '+g.name+' จำนวน '+keys.length+' คาบ?\nตารางของห้องอื่นจะไม่ถูกลบ'))return;
+    keys.forEach(k=>delete state.lessons[k]);saveLocal();renderAll();msg('ล้างตาราง '+g.name+' แล้ว');
+  }
+  function bindAction(id,fn){
+    const old=$(id);if(!old)return;
+    const b=old.cloneNode(true);old.replaceWith(b);b.type='button';b.onclick=e=>{e.preventDefault();e.stopPropagation();try{fn()}catch(err){console.error(err);msg('เกิดข้อผิดพลาด: '+(err?.message||err),true)}};
+  }
+  bindAction('autoAll',doAutoCurrentRoom);
+  bindAction('clearSchedule',doClearCurrentRoom);
+
+  function normalizeCloudUrl(raw){
+    let u=String(raw||'').trim().replace(/^["']+|["']+$/g,'').replace(/\s+/g,'');
+    if(!u)return '';
+    try{const x=new URL(u);if(x.protocol!=='https:')throw 0;if(x.hostname!=='script.google.com')return x.origin+x.pathname;return x.origin+x.pathname.replace(/\/+$/,'')}catch(_){return ''}
+  }
+  const oldCloudConfig=cloudConfig;
+  cloudConfig=function(){
+    const c=oldCloudConfig();
+    const fallback='https://script.google.com/macros/s/AKfycby3iBj7uT9jPMg7wg6UqFD2-YEu7vfEp4XJxukUrExPYv6zPmxfZ_i5Duh_y6SUjtM/exec';
+    return {...c,url:normalizeCloudUrl(c.url)||fallback,key:String(c.key||'college-2569').trim()||'college-2569'};
+  };
+  cloudLoad=async function(){
+    const c=cloudConfig(),st=$('cloudStatus');
+    if(st){st.textContent='กำลังโหลดจาก Cloud...';st.className='notice'}
+    try{
+      const u=new URL(c.url);u.searchParams.set('action','load');u.searchParams.set('key',c.key);u.searchParams.set('t',Date.now());
+      const r=await fetch(u.toString(),{method:'GET',cache:'no-store'});const text=(await r.text()).trim();
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      if(/^<!doctype|^<html/i.test(text))throw new Error('Apps Script ส่งหน้าเว็บกลับมา กรุณาตรวจการ Deploy เป็น Web app /exec');
+      let j;try{j=JSON.parse(text)}catch(_){throw new Error('ข้อมูลที่ Cloud ส่งกลับมาไม่ใช่ JSON')}
+      if(j&&j.ok===false)throw new Error(j.error||'Cloud ปฏิเสธการโหลด');
+      const data=(j&&Object.prototype.hasOwnProperty.call(j,'data'))?j.data:j;
+      if(!data)return alert('ยังไม่มีข้อมูล Cloud สำหรับฐานนี้');
+      state=typeof data==='string'?JSON.parse(data):data;
+      localStorage.setItem(KEY,JSON.stringify(state));renderAll();
+      if(st){st.textContent='โหลด Cloud แล้ว • '+new Date().toLocaleString('th-TH');st.className='notice good'}
+    }catch(e){if(st){st.textContent='โหลด Cloud ไม่สำเร็จ: '+(e?.message||e);st.className='errorbox'}}
+  };
+  setupCloud=function(){
+    const c=cloudConfig();const raw=prompt('วาง Apps Script Web App URL (/exec)',c.url||'');if(raw===null)return;
+    const url=normalizeCloudUrl(raw);if(!url){alert('URL ไม่ถูกต้อง กรุณาใช้ลิงก์ Web App ที่ขึ้นต้นด้วย https://');return}
+    const key=prompt('ชื่อฐานข้อมูล เช่น college-2569',c.key||'college-2569');if(key===null)return;
+    saveCloudConfig({url,key:String(key).trim()||'college-2569'});const st=$('cloudStatus');if(st){st.textContent='ตั้งค่า Cloud แล้ว • ฐาน '+(String(key).trim()||'college-2569');st.className='notice good'}
+  };
+})();
+</script>
