@@ -165,11 +165,25 @@ input,select{border-radius:10px!important}.notice{border-left:4px solid #f59e0b!
 .excel-info{font-size:11px!important}.excel-info>div{white-space:normal!important;line-height:1.25!important}.excel-identity{min-height:132px!important}.excel-top{grid-template-columns:270px 1fr!important}
 @media print{.excel-sheet{zoom:.82}.excel-top{grid-template-columns:23% 77%!important}.excel-identity{min-height:100px!important}.excel-info{font-size:9px!important}.excel-info>div:first-child{font-size:12px!important}.excel-courses{font-size:7px!important}.excel-courses th,.excel-courses td{height:14px!important}.excel-schedule{font-size:8px!important}.excel-schedule tr:nth-child(n+3) td,.excel-schedule tr:nth-child(n+3) th{height:43px!important}}
 .lesson{line-height:1.25}.lesson b,.lesson strong{font-weight:700}.lesson hr{border:0;border-top:1px solid #d9e2ec;margin:4px 0}.student-lesson b{font-size:11px}.teacher-lesson b{font-size:11px}
+
+/* v16 stable navigation + timetable readability */
+@media (max-width:1099px){
+ nav{position:sticky!important;top:0!important;z-index:920!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;overflow:visible!important;white-space:normal!important;padding:6px!important}
+ nav button{width:100%!important;min-width:0!important;height:42px!important;min-height:42px!important;padding:5px 6px!important;font-size:12px!important;text-align:center!important}
+ main{padding-top:12px!important}
+}
+.table-summary{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;padding:10px 12px;background:#f4f9fd;border:1px solid #d7e6f0;border-radius:12px;font-size:12px}
+.table-summary b{color:#123b5d}.table-summary .sum-pill{background:#fff;border:1px solid #d8e4ec;border-radius:999px;padding:5px 9px;white-space:nowrap}
+.lesson{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}.schedule-paper td{overflow:hidden}.schedule-paper .assembly{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;min-width:32px!important;width:32px!important;font-size:9px!important}.schedule-paper th.assembly{writing-mode:horizontal-tb;transform:none}
+.excel-schedule td,.excel-schedule th{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.excel-schedule .lesson{font-size:7.5px!important;line-height:1.15!important}
+.teacher-complete{font-weight:700}.teacher-complete.ok{color:#15803d}.teacher-complete.warn{color:#b45309}.teacher-complete.over{color:#c62828}
+.total-row td{font-weight:700;background:#eef6fb!important}
+@media print{.print-empty{background:#fff!important;color:transparent!important}.excel-schedule .lesson{font-size:6.8px!important}.excel-schedule td,.excel-schedule th{white-space:nowrap!important}.table-summary{display:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
-<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Modern Professional v13 • College System • Schedule v8</span></header>
+<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Professional v16 • College System • Schedule</span></header>
 <div class="app">
 <nav id="nav">
 <button data-page="homePage" class="active">หน้าหลัก</button>
@@ -210,7 +224,7 @@ input,select{border-radius:10px!important}.notice{border-left:4px solid #f59e0b!
 </section>
 
 <section id="schedulePage" class="page">
-<div class="card"><div class="print-title">ตารางเรียนประจำสัปดาห์</div><h2>จัดตารางนักเรียน</h2><div class="grid">
+<div class="card"><div class="print-title">ตารางเรียนประจำสัปดาห์</div><h2>จัดตารางนักเรียน</h2><div class="notice good">ระบบกันคาบกิจกรรมวันพุธ คาบ 7–8 อัตโนมัติ และไม่นับเป็นรายวิชาที่ต้องจัด</div><div class="grid">
 <label>รายวิชา<select id="subjectPick"></select></label><label>ครูผู้สอน<select id="teacherPick"></select></label>
 <label>ห้องเรียน<select id="roomPick"></select></label><label>ชั้นเรียน<input id="groupShow" disabled></label>
 </div><div id="subjectStatus" class="notice"></div><div class="actions">
@@ -272,7 +286,7 @@ function teacher(id){return state.teachers.find(x=>x.id===id)}
 function room(id){return state.rooms.find(x=>x.id===id)}
 function key(gid,d,p){return `${state.activePlanId}|${gid}|${d}|${p}`}
 function parseKey(k){let [pid,gid,d,p]=k.split('|');return {pid,gid,d:+d,p:+p}}
-function isBlocked(g,d,p){return p===5||(d===2&&(p===6||p===7))}
+function isBlocked(g,d,p){return p===5||(d===2&&(p===7||p===8))}
 function isOutside(p){return p>=9} // หลัง 16.00 น.
 function groupLessons(gid){return Object.entries(state.lessons).filter(([k,l])=>{let q=parseKey(k);return q.pid===state.activePlanId&&q.gid===gid})}
 function used(sid){return Object.values(state.lessons).filter(l=>l.planId===state.activePlanId&&l.subjectId===sid).length}
@@ -315,7 +329,7 @@ function makeTable(gid,filterTeacherId=null,clickable=false){
   h+=`<tr><td class="day">${d}</td><td class="assembly">07.45–08.00<br>กิจกรรมหน้าเสาธง</td>`;
   for(let p=1;p<=12;p++){
    let k=key(g.id,di,p),l=state.lessons[k];
-   let locked=p===5,activity=di===2&&(p===6||p===7);
+   let locked=p===5,activity=di===2&&(p===7||p===8);
    if(filterTeacherId && (!l||l.teacherId!==filterTeacherId))l=null;
    let cf=l?conflictsFor(g.id,di,p,l,k):[];
    h+=`<td class="slot ${locked?'locked':''} ${activity?'activity':''} ${cf.length?'conflict':''}" title="${esc(cf.join(' / '))}" ${clickable&&!locked&&!activity?`data-key="${k}" draggable="${!!l}"`:''}>${locked?'พักกลางวัน':activity?(g.level==='ปวช.'?'ลูกเสือ':'กิจกรรม'):(l?lessonHtml(l,!!filterTeacherId):'')}</td>`;
@@ -336,8 +350,14 @@ function makeTeacherCombinedTable(tid){
    h+=`<td class="slot ${locked?'locked':''} ${arr.length>1?'conflict':''}">${locked?'พักกลางวัน':html}</td>`;
   }h+='</tr>'});return h+'</tbody></table>';
 }
+function summaryHtml(mode,id){
+ let subs=mode==='student'?state.subjects.filter(s=>s.groupId===id&&!/กิจกรรม|ลูกเสือ/i.test(s.name||'')):state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===id));
+ let T=subs.reduce((a,x)=>a+Number(x.t||0),0),P=subs.reduce((a,x)=>a+Number(x.p||0),0),N=subs.reduce((a,x)=>a+Number(x.n||0),0),H=T+P;
+ if(mode==='student'){let g=state.groups.find(x=>x.id===id);return `<div class="table-summary"><span class="sum-pill"><b>${esc(g?.name||'')}</b></span><span class="sum-pill">รหัสกลุ่ม ${esc(g?.groupCode||'-')}</span><span class="sum-pill">ครูที่ปรึกษา ${esc(g?.advisor||'-')}</span><span class="sum-pill">รวม ${H} ชม.</span><span class="sum-pill">ท ${T} • ป ${P} • น ${N}</span></div>`}
+ let t=teacher(id),L=teacherLoad(id);return `<div class="table-summary"><span class="sum-pill"><b>${esc(t?.name||'')}</b></span><span class="sum-pill">วุฒิ ${esc(t?.qualification||'-')}</span><span class="sum-pill">หน้าที่พิเศษ ${esc(t?.specialDuty||'-')}</span><span class="sum-pill">คาบใน ${L.inside}/${t?.insideTarget||0}</span><span class="sum-pill">คาบนอก ${L.outside}/${t?.outsideTarget||0}</span><span class="sum-pill">รวม ${L.inside+L.outside} ชม.</span><span class="sum-pill">ท ${T} • ป ${P} • น ${N}</span></div>`
+}
 function renderStudent(){
- studentTable.innerHTML=makeTable(group().id,null,true);
+ studentTable.innerHTML=summaryHtml('student',group().id)+makeTable(group().id,null,true);
  studentTable.querySelectorAll('.slot[data-key]').forEach(td=>{
   td.onclick=()=>toggleSlot(td.dataset.key);
   td.ondragstart=e=>{if(!state.lessons[td.dataset.key])return e.preventDefault();e.dataTransfer.setData('text/plain',td.dataset.key)};
@@ -353,15 +373,15 @@ function renderStudent(){
 }
 function renderTeacher(){
  let tid=teacherView.value||state.teachers[0]?.id||'';
- teacherTable.innerHTML=makeTeacherCombinedTable(tid);
+ teacherTable.innerHTML=summaryHtml('teacher',tid)+makeTeacherCombinedTable(tid);
 }
 function renderSubjects(){
  let g=group();
- let arr=state.subjects.filter(s=>s.groupId===g.id);
+ let arr=state.subjects.filter(s=>s.groupId===g.id&&!/กิจกรรม|ลูกเสือ/i.test(s.name||''));
  subjects.innerHTML=arr.map(s=>`<div class="subject"><div><b>${esc(s.code)} ${esc(s.name)}</b><div class="muted">${esc(teacher(s.teacherId)?.name)} • ห้อง ${esc(room(s.roomId)?.name)} • ท ${s.t} • ป ${s.p} • น ${s.n}</div></div><div class="progress">จัด ${used(s.id)}/${s.t+s.p}</div><div><button class="btn light" onclick="editSubject('${s.id}')">แก้ไข</button> <button class="btn danger" onclick="deleteSubject('${s.id}')">ลบ</button></div></div>`).join('')||'<p class="muted">ยังไม่มีรายวิชาในห้องนี้</p>';
 }
 function renderPicks(){
- let g=group(), arr=state.subjects.filter(s=>s.groupId===g.id);
+ let g=group(), arr=state.subjects.filter(s=>s.groupId===g.id&&!/กิจกรรม|ลูกเสือ/i.test(s.name||''));
  subjectPick.innerHTML=arr.map(s=>`<option value="${s.id}">${esc(s.code)} ${esc(s.name)} (${s.t+s.p} ชม.)</option>`).join('');
  teacherPick.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
  teacherView.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
@@ -375,7 +395,8 @@ function teacherLoad(tid){
 }
 function renderLists(){
  teacherList.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);let cls=(L.inside>t.insideTarget||L.outside>t.outsideTarget)?'load-over':((L.inside<t.insideTarget||L.outside<t.outsideTarget)?'load-warn':'load-ok');
- return `<div class="teacher-card"><b>${esc(t.name)}</b><span class="badge">${esc(t.type)}</span><div class="meta">วุฒิการศึกษา: ${esc(t.qualification||'-')} • หน้าที่พิเศษ: ${esc(t.specialDuty||(t.special?'มีหน้าที่พิเศษ':'-'))}</div><div class="meta">คาบใน <span class="${cls}">${L.inside}/${t.insideTarget}</span> • คาบนอก <span class="${cls}">${L.outside}/${t.outsideTarget}</span></div><div class="actions"><button class="btn light" onclick="editTeacher('${t.id}')">แก้ไข</button><button class="btn danger" onclick="removeTeacherById('${t.id}')">ลบ</button></div></div>`}).join('');
+ let complete=(L.inside===Number(t.insideTarget||0)&&L.outside===Number(t.outsideTarget||0)), over=(L.inside>Number(t.insideTarget||0)||L.outside>Number(t.outsideTarget||0));let status=complete?'ครบ':(over?'เกินเป้า':'ยังไม่ครบ'),statusCls=complete?'ok':(over?'over':'warn');
+ return `<div class="teacher-card"><b>${esc(t.name)}</b><span class="badge">${esc(t.type)}</span><div class="meta">วุฒิการศึกษา: ${esc(t.qualification||'-')} • หน้าที่พิเศษ: ${esc(t.specialDuty||(t.special?'มีหน้าที่พิเศษ':'-'))}</div><div class="meta">คาบใน <span class="${cls}">${L.inside}/${t.insideTarget}</span> • คาบนอก <span class="${cls}">${L.outside}/${t.outsideTarget}</span> • สถานะ <span class="teacher-complete ${statusCls}">${status}</span></div><div class="actions"><button class="btn light" onclick="editTeacher('${t.id}')">แก้ไข</button><button class="btn danger" onclick="removeTeacherById('${t.id}')">ลบ</button></div></div>`}).join('');
  roomList.innerHTML=state.rooms.map(r=>`<div class="subject"><div>${esc(r.name)}</div><button class="btn danger" onclick="removeRoomById('${r.id}')">ลบ</button></div>`).join('');
 }
 function renderStatus(){
@@ -453,24 +474,24 @@ function renderPreview(mode=window.previewMode||'student'){
  window.previewMode=mode;let g=group(),tid=teacherView.value||state.teachers[0]?.id;
  let t=teacher(tid), who=mode==='student'?g.name:(t?.name||'');
  let sched='';days.forEach((d,di)=>{let cells='';for(let p=1;p<=12;p++){
-   let blocked=p===5,act=di===2&&(p===6||p===7), content='';
+   let blocked=p===5,act=di===2&&(p===7||p===8), content='';
    if(mode==='student'){
      let l=state.lessons[key(g.id,di,p)]; content=l?lessonHtml(l,false):'';
      if(act)content=g.level==='ปวช.'?'ลูกเสือ':'กิจกรรม';
    }else{
      let arr=teacherLessonAt(tid,di,p);content=arr.map(l=>lessonHtml(l,true)).join('<hr>');
    }
-   cells+=`<td class="${blocked?'locked':act&&mode==='student'?'activity':''}">${blocked?'พักกลางวัน':content}</td>`
+   cells+=`<td class="${blocked?'locked print-empty':act&&mode==='student'?'activity':''}">${blocked?'':content}</td>`
   }sched+=`<tr><th colspan="3">วัน${d}</th><td class="assembly-cell"></td>${cells}</tr>`});
- let subs=mode==='student'?state.subjects.filter(s=>s.groupId===g.id):state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
- let course='';let half=Math.ceil(subs.length/2)||1;for(let i=0;i<half;i++){let a=subs[i],b=subs[i+half];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`}
+ let subs=mode==='student'?state.subjects.filter(s=>s.groupId===g.id&&!/กิจกรรม|ลูกเสือ/i.test(s.name||'')):state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
+ let course='';let half=Math.ceil(subs.length/2)||1;for(let i=0;i<half;i++){let a=subs[i],b=subs[i+half];let cr=x=>x?`<td>${esc(x.code)}</td><td colspan="4">${esc(x.name)}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.t+x.p}</td>`:`<td></td><td colspan="4"></td><td></td><td></td><td></td><td></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`} let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row"><td colspan="14">รวมทั้งหมด</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
  let extra=mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:`<div>วุฒิการศึกษา ${esc(t?.qualification||'-')}</div><div>หน้าที่พิเศษ ${esc(t?.specialDuty||(t?.special?'มีหน้าที่พิเศษ':'-'))}</div>`;
  preview.innerHTML=`<div class="excel-sheet"><div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน ${esc(plan().term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} ${esc(who)}</div>${extra}<div>แผนกวิชา ช่างไฟฟ้ากำลัง</div></div></div><table class="excel-courses"><tr><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th><th>รหัสวิชา</th><th colspan="4">ชื่อรายวิชา</th><th>ท.</th><th>ป.</th><th>น.</th><th>ช.</th></tr>${course}</table></div><table class="excel-schedule"><tr><th colspan="3">เวลา</th><th>07:45-08:00</th>${periodTimes.map(t=>`<th>${t}</th>`).join('')}</tr><tr><th colspan="3">วัน/คาบ</th><th>กิจกรรมหน้าเสาธง</th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table></div>`;
 }
 function exportExcel(){
  if(typeof XLSX==='undefined'){alert('กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อใช้ Export Excel');return}
  let g=group(),aoa=[['วิทยาลัยเทคนิคปากช่อง'],[`ภาคเรียน ${plan().term}`],[`ชั้นเรียน ${g.name}`],[`รหัสกลุ่มเรียน ${g.groupCode||'-'}`],[`ครูที่ปรึกษา ${g.advisor||'-'}`],['วัน/คาบ','กิจกรรมหน้าเสาธง',...Array.from({length:12},(_,i)=>`${i+1} ${periodTimes[i]}`)]];
- days.forEach((d,di)=>{let row=[d,'กิจกรรมหน้าเสาธง'];for(let p=1;p<=12;p++){let l=state.lessons[key(g.id,di,p)],s=l&&subject(l.subjectId);row.push(p===5?'พักกลางวัน':(di===2&&(p===6||p===7))?(g.level==='ปวช.'?'ลูกเสือ':'กิจกรรม'):(s?`${s.code}
+ days.forEach((d,di)=>{let row=[d,'กิจกรรมหน้าเสาธง'];for(let p=1;p<=12;p++){let l=state.lessons[key(g.id,di,p)],s=l&&subject(l.subjectId);row.push(p===5?'':(di===2&&(p===7||p===8))?(g.level==='ปวช.'?'ลูกเสือ':'กิจกรรม'):(s?`${s.code}
 ${s.name}
 ${teacher(l.teacherId)?.name}
 ห้อง ${room(l.roomId)?.name}`:''))}aoa.push(row)});
