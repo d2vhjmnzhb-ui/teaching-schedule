@@ -867,6 +867,143 @@ window.addEventListener('load',()=>{
   .excel-schedule.pdf-fixed th,.excel-schedule.pdf-fixed td{overflow:hidden!important;}
 }
 </style>
+
+
+<!-- v43: single source of truth for current-room hours + independent auto engine -->
+<style>
+#v43Diag{margin-top:8px;font-size:13px;line-height:1.45}
+</style>
+<script>
+(function v43SingleTruth(){
+ const $=id=>document.getElementById(id);
+ const req=s=>Number(s?.t||0)+Number(s?.p||0);
+ const currentG=()=>state.groups.find(g=>g.id===state.currentGroupId);
+ function exactCount(sid,gid=state.currentGroupId){
+   const pid=String(state.activePlanId||''); gid=String(gid||''); sid=String(sid||'');
+   let n=0;
+   for(const [k,l] of Object.entries(state.lessons||{})){
+     const q=parseKey(k);
+     if(String(q.pid)===pid && String(q.gid)===gid && String(l?.subjectId||'')===sid) n++;
+   }
+   return n;
+ }
+ window.v43ExactCount=exactCount;
+ used=function(sid,gid=state.currentGroupId){return exactCount(sid,gid)};
+ window.usedForGroup=used;
+ function groupSubjects(){
+   const g=currentG(); let a=(typeof planSubjects==='function'?planSubjects():[]).slice();
+   if(g?.groupType==='backlog' && Array.isArray(g.allowedSubjectIds) && g.allowedSubjectIds.length) a=a.filter(s=>g.allowedSubjectIds.includes(s.id));
+   return a;
+ }
+ function say(t,bad=false){
+   let n=$('v43Diag'); const a=$('v42ActionMsg')||$('v40ScopeNote')||$('clearSchedule');
+   if(!n&&a){n=document.createElement('div');n.id='v43Diag';a.insertAdjacentElement('afterend',n)}
+   if(n){n.className=bad?'errorbox':'notice';n.textContent=t}
+ }
+ function teacherRooms(tid){return (state.rooms||[]).filter(r=>String(r.teacherId||'')===String(tid||''))}
+ function resolveTrial(s,g){
+   const tid=s.teacherId||$('teacherPick')?.value||'';
+   if(!tid)return {error:`${s.code} ${s.name}: ยังไม่ได้กำหนดครูผู้สอน`};
+   let rooms=teacherRooms(tid), rid=s.roomId;
+   if(!rid || !rooms.some(r=>r.id===rid)) rid=rooms[0]?.id||s.roomId||$('roomPick')?.value||'';
+   if(!rid)return {error:`${s.code} ${s.name}: ครูยังไม่มีห้องเรียนที่กำหนดไว้`};
+   return {planId:state.activePlanId,groupId:g.id,subjectId:s.id,teacherId:tid,roomId:rid};
+ }
+ function blocked(d,p,s){return p===5 || (!isActivitySubject(s)&&d===2&&(p===7||p===8)) || (isActivitySubject(s)&&!(d===2&&(p===7||p===8)));}
+ function canPlace(g,d,p,trial,s){
+   if(p<1||p>12||blocked(d,p,s))return false;
+   const k=key(g.id,d,p); if(state.lessons[k])return false;
+   // Use existing conflict engine for teacher/group safety. Room sharing is allowed by later conflict override.
+   try{return !conflictsFor(g.id,d,p,trial).length}catch(e){return true}
+ }
+ function placeSubject(s){
+   const g=currentG(); if(!g)return {added:0,error:'กรุณาเลือกห้อง / กลุ่ม'};
+   let remain=req(s)-exactCount(s.id,g.id); if(remain<=0)return {added:0,complete:true};
+   const trial=resolveTrial(s,g); if(trial.error)return {added:0,error:trial.error};
+   let added=0;
+   if(isActivitySubject(s)){
+     for(const p of [7,8]) if(remain>0&&canPlace(g,2,p,trial,s)){state.lessons[key(g.id,2,p)]={...trial};remain--;added++}
+     return {added,complete:remain===0};
+   }
+   // Prefer starts 1, then 6. Late starts are strongly discouraged; 9 is never tried as a start until all earlier starts fail.
+   const starts=[1,6,2,3,4,7,8,10,11,12,9];
+   while(remain>0){
+     let best=null;
+     for(let d=0;d<5;d++) for(const p of starts){
+       for(let len=Math.min(4,remain);len>=1;len--){
+         if(p+len-1>12)continue;
+         const ps=Array.from({length:len},(_,i)=>p+i);
+         if(ps.some(x=>!canPlace(g,d,x,trial,s)))continue;
+         let score=len*1000;
+         score += p===1?900:p===6?780:p<=4?500:p<=8?350:p===9?-900:-500;
+         if(p+len-1<=8)score+=250;
+         if(ps.some(x=>x>=9))score-=600*ps.filter(x=>x>=9).length;
+         // favor compact day and avoid tiny fragments when a larger block exists
+         const sameDay=Object.entries(state.lessons||{}).filter(([k,l])=>{const q=parseKey(k);return q.pid===state.activePlanId&&q.gid===g.id&&q.d===d&&l.subjectId===s.id}).length;
+         score+=sameDay?80:0;
+         if(!best||score>best.score)best={d,p,len,score};
+       }
+     }
+     if(!best)break;
+     for(let i=0;i<best.len;i++){state.lessons[key(g.id,best.d,best.p+i)]={...trial};added++;remain--}
+   }
+   return {added,complete:remain===0};
+ }
+ window.v43PlaceSubject=placeSubject;
+ function refreshTruthUI(){
+   const g=currentG(), all=groupSubjects(); if(!g)return;
+   const sel=$('subjectPick'); if(sel){
+     const keep=sel.value, pending=all.filter(s=>exactCount(s.id,g.id)<req(s));
+     sel.innerHTML=pending.map(s=>`<option value="${s.id}">${esc(s.code)} ${esc(s.name)} — เหลือ ${req(s)-exactCount(s.id,g.id)} ชม.</option>`).join('');
+     if(pending.some(s=>s.id===keep))sel.value=keep;
+   }
+   const pending=all.filter(s=>exactCount(s.id,g.id)<req(s)), st=$('subjectStatus');
+   if(st){
+     if(!all.length){st.className='notice';st.textContent='ยังไม่มีรายวิชาในแผนนี้'}
+     else if(!pending.length){st.className='notice good';st.textContent=`จัดรายวิชาครบทุกวิชาแล้วสำหรับ ${g.name}`}
+     else {const s=subject(sel?.value)||pending[0],u=exactCount(s.id,g.id);st.className='notice';st.textContent=`ยังจัดไม่ครบ ${pending.length} วิชา • ${s.code} ${s.name} เหลือ ${req(s)-u} ชม. (จัดแล้ว ${u}/${req(s)})`}
+   }
+ }
+ const baseRenderAll=renderAll;
+ renderAll=function(){baseRenderAll();refreshTruthUI()};
+ function replace(id,label,handler,busy){
+   const old=$(id); if(!old)return; const b=old.cloneNode(true); b.type='button';b.id=id;b.textContent=label;old.replaceWith(b);
+   b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(b.disabled)return;const oldtxt=b.textContent;b.disabled=true;b.textContent=busy;setTimeout(()=>{try{handler()}catch(err){console.error(err);say('เกิดข้อผิดพลาด: '+(err?.message||err),true)}finally{b.disabled=false;b.textContent=oldtxt}},20)},true);
+ }
+ function autoOne(){
+   const g=currentG(), s=subject($('subjectPick')?.value); if(!g||!s){say('กรุณาเลือกห้องและรายวิชาก่อน',true);return}
+   const before=exactCount(s.id,g.id), r=placeSubject(s); saveLocal();renderAll(); const after=exactCount(s.id,g.id);
+   if(r.error)say(r.error,true); else if(after===before&&after>=req(s))say(`${s.code} ${s.name} ครบ ${after}/${req(s)} ชม. แล้ว`); else if(after===before)say(`ยังหาตำแหน่งให้ ${s.code} ${s.name} ไม่ได้`,true); else say(`จัด ${s.code} เพิ่ม ${after-before} คาบ • ตอนนี้ ${after}/${req(s)} ชม.${after<req(s)?' • ยังเหลือ '+(req(s)-after)+' ชม.':''}`,after<req(s));
+ }
+ function autoAllCurrent(){
+   const g=currentG();if(!g){say('กรุณาเลือกห้อง / กลุ่มก่อน',true);return}
+   const list=groupSubjects().sort((a,b)=>{const ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;return ap-bp||req(b)-req(a)});
+   let total=0,errors=[];
+   for(let pass=0;pass<6;pass++){let round=0;for(const s of list){if(exactCount(s.id,g.id)>=req(s))continue;const r=placeSubject(s);round+=r.added||0;if(r.error&&!errors.includes(r.error))errors.push(r.error)}total+=round;if(!round)break}
+   saveLocal();renderAll(); const missing=list.filter(s=>exactCount(s.id,g.id)<req(s));
+   if(missing.length){const detail=missing.slice(0,4).map(s=>`${s.code} ${exactCount(s.id,g.id)}/${req(s)}`).join(', ');say(`จัดเพิ่ม ${total} คาบ • ยังขาด ${missing.length} วิชา: ${detail}${missing.length>4?' …':''}${errors[0]?' • '+errors[0]:''}`,true)}
+   else say(`จัดทุกวิชาของ ${g.name} ครบแล้ว • เพิ่ม ${total} คาบ`);
+ }
+ function clearCurrent(){
+   const g=currentG();if(!g)return say('กรุณาเลือกห้อง / กลุ่มก่อน',true);
+   const ks=Object.keys(state.lessons||{}).filter(k=>{const q=parseKey(k);return String(q.pid)===String(state.activePlanId)&&String(q.gid)===String(g.id)});
+   if(!ks.length)return say(`${g.name} ยังไม่มีคาบให้ล้าง`);
+   if(!confirm(`ล้างตารางของ ${g.name} จำนวน ${ks.length} คาบหรือไม่?`))return;
+   ks.forEach(k=>delete state.lessons[k]);saveLocal();renderAll();say(`ล้างตาราง ${g.name} แล้ว ${ks.length} คาบ`);
+ }
+ replace('autoOne','จัดวิชานี้อัตโนมัติ',autoOne,'กำลังจัด…');
+ replace('autoAll','จัดทุกวิชาอัตโนมัติ (ห้องนี้)',autoAllCurrent,'กำลังจัดทั้งห้อง…');
+ replace('clearSchedule','ล้างตารางห้องนี้',clearCurrent,'กำลังล้าง…');
+ // Manual placement must also use the same exact current-room count.
+ const oldToggle=toggleSlot;
+ toggleSlot=function(k){
+   const q=parseKey(k),s=subject($('subjectPick')?.value);
+   if(!state.lessons[k]&&s&&exactCount(s.id,q.gid)>=req(s))return alert('วิชานี้จัดครบจำนวนชั่วโมงแล้วสำหรับห้องนี้');
+   return oldToggle(k);
+ };
+ setTimeout(()=>{refreshTruthUI();say('v43 พร้อมใช้งาน • การนับชั่วโมงยึดเฉพาะห้องที่เลือก')},0);
+})();
+</script>
 </body></html>
 <!-- v19 student-first scheduling refinements -->
 <style>
