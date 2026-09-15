@@ -1,24 +1,16 @@
-College System v10 – Cloud Scheduler
+College System v11 – Cloud Connected
 
-ไฟล์:
-- index.html เว็บหลัก
-- image1.png ตราวิทยาลัย
-- Code.gs Backend สำหรับ Google Sheets / Apps Script
+Apps Script URL ถูกฝังเป็นค่าเริ่มต้นแล้ว:
+https://script.google.com/macros/s/AKfycbyo_Sg-b3SVbxMLKLtt3Q4ZnCd_KxjA_UUxgAP6Qm6qmy6D7X4e_UBlCBBzpyPw0Rp9/exec
 
-เชื่อม Cloud ครั้งแรก:
-1) สร้าง Google Sheet ใหม่สำหรับฐานตารางสอน
-2) ใน Sheet เปิด Extensions > Apps Script
-3) ลบโค้ดเดิม แล้ววาง Code.gs ทั้งไฟล์ กด Save
-4) Deploy > New deployment > Web app
-5) Execute as: Me
-6) Who has access: Anyone (หรือค่าที่บัญชีองค์กรอนุญาตให้เว็บ GitHub Pages เรียกได้)
-7) Deploy แล้วคัดลอก URL ที่ลงท้าย /exec
-8) เปิดเว็บ v10 > ตั้งค่า Cloud > วาง URL > ตั้งชื่อฐาน เช่น college-2569
-9) กด บันทึก Cloud
+ชื่อฐานเริ่มต้น:
+college-2569
 
-หลังจากนั้นเครื่องอื่นเปิดเว็บเดียวกัน ตั้ง URL และชื่อฐานเดียวกัน แล้วกด โหลด Cloud จะได้ข้อมูลชุดเดียวกัน
+หลังอัป index.html และ image1.png ขึ้น GitHub Pages:
+- กด “บันทึก Cloud” เพื่อบันทึกข้อมูลไป Google Sheet
+- กด “โหลด Cloud” เพื่อโหลดข้อมูลจาก Google Sheet
+- “ตั้งค่า Cloud” ใช้เฉพาะกรณีต้องการเปลี่ยน Apps Script หรือชื่อฐาน
 
-หมายเหตุด้านความปลอดภัย:
-- อย่าเก็บข้อมูลลับ/รหัสผ่านในฐานนี้
-- ถ้า deployment เปิด Anyone ผู้ที่รู้ URL และชื่อฐานอาจเรียก endpoint ได้
-- สำหรับระบบใช้งานจริงหลายผู้ใช้ ควรเพิ่มระบบยืนยันตัวตน/สิทธิ์ในรุ่นถัดไป
+สำคัญ:
+การบันทึกสำเร็จขึ้นกับ Apps Script deployment ว่าอนุญาตให้ Web App เรียกใช้งานได้
+และ Code.gs ต้องเป็นเวอร์ชัน backend ที่ให้ไว้

@@ -74,7 +74,7 @@ table{border-collapse:collapse;width:100%;min-width:1050px;table-layout:fixed}th
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
-<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Cloud Scheduler v10 • College System • Schedule v8</span></header>
+<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Cloud Connected v11 • College System • Schedule v8</span></header>
 <div class="app">
 <nav id="nav">
 <button data-page="homePage" class="active">หน้าหลัก</button>
@@ -390,7 +390,7 @@ renderAll();
 /* v10 cloud persistence: Google Sheets + Apps Script */
 const CLOUD_CFG_KEY='collegeScheduleCloudConfigV10';
 function cloudConfig(){
-  try{return JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{url:'',key:'college-main'}}catch(e){return {url:'',key:'college-main'}}
+  try{return JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{url:'https://script.google.com/macros/s/AKfycbyo_Sg-b3SVbxMLKLtt3Q4ZnCd_KxjA_UUxgAP6Qm6qmy6D7X4e_UBlCBBzpyPw0Rp9/exec',key:'college-2569'}}catch(e){return {url:'https://script.google.com/macros/s/AKfycbyo_Sg-b3SVbxMLKLtt3Q4ZnCd_KxjA_UUxgAP6Qm6qmy6D7X4e_UBlCBBzpyPw0Rp9/exec',key:'college-2569'}}
 }
 function saveCloudConfig(c){localStorage.setItem(CLOUD_CFG_KEY,JSON.stringify(c))}
 async function cloudSave(){
