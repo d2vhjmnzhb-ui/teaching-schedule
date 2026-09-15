@@ -24,7 +24,7 @@ table{border-collapse:collapse;width:100%;min-width:1050px;table-layout:fixed}th
 .preview{background:white;padding:12px;border:1px solid #555;min-width:1000px}.preview-head{display:grid;grid-template-columns:210px 1fr;gap:0;margin-bottom:0}.school{text-align:center;border:1px solid #444;padding:10px;font-weight:bold;display:flex;flex-direction:column;justify-content:center}.course-list{border:1px solid #444;border-left:0;padding:0;font-size:10px}
 .smalltbl{min-width:0}.smalltbl th,.smalltbl td{height:26px;font-size:9px}.print-title{text-align:center;font-size:16px;font-weight:bold;margin:8px}
 @media(max-width:850px){.app{grid-template-columns:1fr}nav{display:flex;overflow:auto;position:sticky;top:57px;z-index:4;padding:7px}nav button{min-width:145px}.grid,.grid3{grid-template-columns:1fr 1fr}main{padding:9px}}
-@media print{header,nav,.no-print{display:none!important}.app{display:block}main{padding:0}.page{display:none!important}#printPage{display:block!important}.card{border:0;box-shadow:none;padding:0}.preview{border:0;padding:0;transform-origin:top left} @page{size:A4 landscape;margin:7mm}}
+@media print{header,#nav,nav,.no-print{display:none!important} .app{display:block!important;grid-template-columns:1fr!important}.app{display:block}main{padding:0}.page{display:none!important}#printPage{display:block!important}.card{border:0;box-shadow:none;padding:0}.preview{border:0;padding:0;transform-origin:top left} @page{size:A4 landscape;margin:7mm}}
 
 /* v4: vocational-college paper schedule */
 :root{--ink:#111;--paper:#fff;--line:#111;--soft:#f4f4f4}
@@ -267,7 +267,7 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <section id="schedulePage" class="page">
 <div class="card"><div class="print-title">ตารางเรียนประจำสัปดาห์</div><h2>จัดตารางนักเรียน</h2><div class="notice good">ระบบกันคาบกิจกรรมวันพุธ คาบ 7–8 อัตโนมัติ และไม่นับเป็นรายวิชาที่ต้องจัด</div><div class="grid">
 <label>รายวิชา<select id="subjectPick"></select></label><label>ครูผู้สอน<select id="teacherPick"></select></label>
-<label>ห้องเรียน<select id="roomPick"></select></label><label>ชั้นเรียน<input id="groupShow" disabled></label>
+<label>ห้องเรียน<select id="roomPick"></select></label><label>ชั้นเรียน<input id="groupShow" disabled></label><div class="actions"><button type="button" class="btn light" onclick="bindRoomsToTeacher()">ผูกห้องกับครู (4 ห้องขึ้นไปได้)</button></div>
 </div><div id="subjectStatus" class="notice"></div><div class="actions">
 <button class="btn primary" id="autoOne">จัดวิชานี้อัตโนมัติ</button><button class="btn light" id="autoAll">จัดทุกวิชาอัตโนมัติ</button><button class="btn danger" id="clearSchedule">ล้างตาราง</button>
 </div><p class="muted">แตะคาบว่างเพื่อวางวิชา • แตะคาบเดิมเพื่อลบ • ลากคาบที่มีวิชาไปยังคาบอื่นเพื่อย้าย/สลับ • สามารถแบ่ง 4 ชม. เป็น 2+2, 3+1 ฯลฯ ได้</p></div>
@@ -329,7 +329,7 @@ function normalizeLevel(v){return String(v||'ปวช.').includes('ปวส')?
 function yearOptionsFor(level){return normalizeLevel(level)==='ปวส.'?['1','2']:['1','2','3']}
 function defaultDeptShort(level){return normalizeLevel(level)==='ปวส.'?'ชฟส.':'ชฟ.'}
 function rebuildGroupName(g){g.level=normalizeLevel(g.level);g.year=String(g.year||'1');g.roomNo=String(g.roomNo||'1').trim();g.groupNo=String(g.groupNo||'1').trim();g.deptShort=(g.deptShort||defaultDeptShort(g.level)).trim();g.name=`${g.deptShort}${g.year}/${g.roomNo} ก.${g.groupNo}`;return g.name}
-function migrateState(){state.plans=state.plans||[];state.groups=state.groups||[];state.plans.forEach(p=>{p.level=normalizeLevel(p.level||'ปวช.');p.year=String(p.year||'1');p.semester=String(p.semester||((p.term||'1').match(/^([^/]+)/)||[])[1]||'1');p.academicYear=String(p.academicYear||('25'+String(p.term||'69').split('/').pop()));p.term=termLabel(p.semester,p.academicYear);p.name=`${p.level} ปี ${p.year} • ${p.term}`});state.groups.forEach(g=>{g.level=normalizeLevel(g.level);g.year=String(g.year||'1');if(!g.roomNo){let m=String(g.name||'').match(/\/(\d+)/);g.roomNo=m?m[1]:'1'}if(!g.groupNo){let m=String(g.name||'').match(/(?:ก\.|กลุ่ม\s*)(\d+)/);g.groupNo=m?m[1]:'1'}if(!g.deptShort)g.deptShort=String(g.name||'').match(/^([^0-9]+)/)?.[1]?.trim()||defaultDeptShort(g.level);rebuildGroupName(g)})}
+function migrateState(){state.plans=state.plans||[];state.groups=state.groups||[];state.teachers=(state.teachers||[]).map(t=>({...t,roomIds:Array.isArray(t.roomIds)?t.roomIds:[]}));state.plans.forEach(p=>{p.level=normalizeLevel(p.level||'ปวช.');p.year=String(p.year||'1');p.semester=String(p.semester||((p.term||'1').match(/^([^/]+)/)||[])[1]||'1');p.academicYear=String(p.academicYear||('25'+String(p.term||'69').split('/').pop()));p.term=termLabel(p.semester,p.academicYear);p.name=`${p.level} ปี ${p.year} • ${p.term}`});state.groups.forEach(g=>{g.level=normalizeLevel(g.level);g.year=String(g.year||'1');if(!g.roomNo){let m=String(g.name||'').match(/\/(\d+)/);g.roomNo=m?m[1]:'1'}if(!g.groupNo){let m=String(g.name||'').match(/(?:ก\.|กลุ่ม\s*)(\d+)/);g.groupNo=m?m[1]:'1'}if(!g.deptShort)g.deptShort=String(g.name||'').match(/^([^0-9]+)/)?.[1]?.trim()||defaultDeptShort(g.level);rebuildGroupName(g)})}
 migrateState();
 // v22: รายวิชาเป็นของแผนการเรียน ไม่ใช่ของห้อง ห้องทุกห้องในระดับ/ชั้นปี/ภาคเรียนเดียวกันใช้แผนเดียวกัน
 (function migrateSubjectsToPlans(){
@@ -355,7 +355,8 @@ migrateState();
  // ลบรายวิชาซ้ำในแผนเดียวกัน โดยเทียบรหัสวิชา
  const seen=new Set();state.subjects=state.subjects.filter(s=>{const k=`${s.planId}|${String(s.code||'').trim()}`;if(!s.code||!seen.has(k)){seen.add(k);return true}return false});
 })();
-function planSubjects(pid=state.activePlanId){return state.subjects.filter(s=>s.planId===pid&&!/กิจกรรม|ลูกเสือ/i.test(s.name||''))}
+function planSubjects(pid=state.activePlanId){return state.subjects.filter(s=>s.planId===pid)}
+function isActivitySubject(s){return !!s && /ลูกเสือ|กิจกรรมองค์การวิชาชีพ|กิจกรรม/i.test(String(s.name||''))}
 function groupsForPlan(p=plan()){return state.groups.filter(g=>g.level===p.level&&String(g.year)===String(p.year))}
 function group(){return state.groups.find(x=>x.id===state.currentGroupId)||state.groups[0]}
 function subject(id){return state.subjects.find(x=>x.id===id)}
@@ -363,7 +364,8 @@ function teacher(id){return state.teachers.find(x=>x.id===id)}
 function room(id){return state.rooms.find(x=>x.id===id)}
 function key(gid,d,p){return `${state.activePlanId}|${gid}|${d}|${p}`}
 function parseKey(k){let [pid,gid,d,p]=k.split('|');return {pid,gid,d:+d,p:+p}}
-function isBlocked(g,d,p){return p===5||(d===2&&(p===7||p===8))}
+function isBlocked(g,d,p){return p===5}
+function activitySlot(d,p){return d===2&&(p===7||p===8)}
 function isOutside(p){return p>=9} // หลัง 16.00 น.
 function groupLessons(gid){return Object.entries(state.lessons).filter(([k,l])=>{let q=parseKey(k);return q.pid===state.activePlanId&&q.gid===gid})}
 function used(sid){return Object.values(state.lessons).filter(l=>l.planId===state.activePlanId&&l.subjectId===sid).length}
@@ -406,10 +408,10 @@ function makeTable(gid,filterTeacherId=null,clickable=false){
   h+=`<tr><td class="day">${d}</td><td class="assembly assembly-vertical">กิจกรรมหน้าเสาธง</td>`;
   for(let p=1;p<=12;p++){
    let k=key(g.id,di,p),l=state.lessons[k];
-   let locked=p===5,activity=di===2&&(p===7||p===8);
+   let locked=p===5,activity=activitySlot(di,p);
    if(filterTeacherId && (!l||l.teacherId!==filterTeacherId))l=null;
    let cf=l?conflictsFor(g.id,di,p,l,k):[];
-   h+=`<td class="slot ${locked?'locked':''} ${activity?'activity':''} ${cf.length?'conflict':''}" title="${esc(cf.join(' / '))}" ${clickable&&!locked&&!activity?`data-key="${k}" draggable="${!!l}"`:''}>${locked?'พักกลางวัน':activity?'':(l?lessonHtml(l,!!filterTeacherId):'')}</td>`;
+   h+=`<td class="slot ${locked?'locked':''} ${activity?'activity':''} ${cf.length?'conflict':''}" title="${esc(cf.join(' / '))}" ${clickable&&!locked?`data-key="${k}" draggable="${!!l}"`:''}>${locked?'พักกลางวัน':(l?lessonHtml(l,!!filterTeacherId):'')}</td>`;
   }
   h+='</tr>';
  });
@@ -457,13 +459,16 @@ function renderSubjects(){
  let arr=planSubjects();
  subjects.innerHTML=arr.map(s=>`<div class="subject"><div><b>${esc(s.code)} ${esc(s.name)}</b><div class="muted">${esc(teacher(s.teacherId)?.name)} • ห้อง ${esc(room(s.roomId)?.name)} • ท ${s.t} • ป ${s.p} • น ${s.n}</div></div><div class="progress">จัด ${used(s.id)}/${s.t+s.p}</div><div><button class="btn light" onclick="editSubject('${s.id}')">แก้ไข</button> <button class="btn danger" onclick="deleteSubject('${s.id}')">ลบ</button></div></div>`).join('')||'<p class="muted">ยังไม่มีรายวิชาในแผนนี้</p>';
 }
+function preferredRoomsForTeacher(tid){let t=teacher(tid);return Array.isArray(t?.roomIds)?t.roomIds.filter(id=>room(id)):[]}
+function renderRoomPickForTeacher(tid,keep){let pref=preferredRoomsForTeacher(tid),ids=[...pref,...state.rooms.map(r=>r.id).filter(id=>!pref.includes(id))];roomPick.innerHTML=ids.map(id=>{let r=room(id);return `<option value="${id}">${esc(r?.name||'')}${pref.includes(id)?' • ห้องที่ผูกกับครู':''}</option>`}).join('');if(keep&&ids.includes(keep))roomPick.value=keep;}
+function bindRoomsToTeacher(){let t=teacher(teacherPick.value);if(!t)return alert('กรุณาเลือกครู');let current=preferredRoomsForTeacher(t.id).map(id=>room(id)?.name).filter(Boolean).join(', ');let ans=prompt('ระบุห้องที่ผูกกับ '+t.name+' คั่นด้วยเครื่องหมายจุลภาค (รองรับอย่างน้อย 4 ห้อง)',current);if(ans===null)return;let names=ans.split(',').map(x=>x.trim()).filter(Boolean);let ids=[];for(let n of names){let r=state.rooms.find(x=>x.name===n);if(r&&!ids.includes(r.id))ids.push(r.id)}t.roomIds=ids;renderRoomPickForTeacher(t.id,roomPick.value);renderAll();}
 function renderPicks(){
  let g=group(), arr=planSubjects();
  subjectPick.innerHTML=arr.map(s=>`<option value="${s.id}">${esc(s.code)} ${esc(s.name)} (${s.t+s.p} ชม.)</option>`).join('');
  teacherPick.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
  let keepTeacherView=teacherView.value||state.teachers[0]?.id||''; teacherView.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);return `<option value="${t.id}">${esc(t.name)} • ใน ${L.inside}/${t.insideTarget||0} • นอก ${L.outside}/${t.outsideTarget||0} • รวม ${L.inside+L.outside} ชม.</option>`}).join(''); if(state.teachers.some(t=>t.id===keepTeacherView))teacherView.value=keepTeacherView; let ptv=document.getElementById('printTeacherView'); if(ptv){let keepPrint=ptv.value||teacherView.value||state.teachers[0]?.id||'';ptv.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');if(state.teachers.some(t=>t.id===keepPrint))ptv.value=keepPrint;}
  let tv=teacher(teacherView.value||state.teachers[0]?.id),TL=tv?teacherLoad(tv.id):{inside:0,outside:0};let tvs=document.getElementById('teacherViewStatus');if(tvs&&tv)tvs.textContent=`${tv.name} — คาบใน ${TL.inside}/${tv.insideTarget||0} • คาบนอก ${TL.outside}/${tv.outsideTarget||0} • รวม ${TL.inside+TL.outside} ชม.`;
- roomPick.innerHTML=state.rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
+ renderRoomPickForTeacher(teacherPick.value||state.teachers[0]?.id,roomPick.value);
  level.value=g.level;year.innerHTML=yearOptionsFor(g.level).map(y=>`<option ${String(g.year)===y?'selected':''}>${y}</option>`).join('');roomNo.value=g.roomNo||'1';groupNo.value=g.groupNo||'1';deptShort.value=g.deptShort||defaultDeptShort(g.level);groupCode.value=g.groupCode||'';advisor.value=g.advisor||'';semester.value=plan().semester||'1';academicYear.value=plan().academicYear||'2569';term.value=termLabel(semester.value,academicYear.value);groupShow.value=g.name;
 }
 function teacherLoad(tid){
@@ -495,6 +500,8 @@ function toggleSlot(k){
  let q=parseKey(k),g=state.groups.find(x=>x.id===q.gid);if(isBlocked(g,q.d,q.p))return;
  if(state.lessons[k]){delete state.lessons[k];renderAll();return}
  let s=subject(subjectPick.value);if(!s)return alert('กรุณาเพิ่มรายวิชา');
+ if(isActivitySubject(s)&&!activitySlot(q.d,q.p))return alert('วิชาลูกเสือ/กิจกรรมองค์การวิชาชีพ ลงได้เฉพาะวันพุธ คาบ 7–8');
+ if(!isActivitySubject(s)&&activitySlot(q.d,q.p))return alert('วันพุธ คาบ 7–8 สงวนสำหรับลูกเสือ/กิจกรรมองค์การวิชาชีพ');
  if(used(s.id)>=s.t+s.p)return alert('วิชานี้จัดครบจำนวนชั่วโมงแล้ว');
  let l={planId:state.activePlanId,groupId:g.id,subjectId:s.id,teacherId:teacherPick.value||s.teacherId,roomId:roomPick.value||s.roomId};
  let c=conflictsFor(g.id,q.d,q.p,l);
@@ -503,7 +510,7 @@ function toggleSlot(k){
 }
 function scoreBlock(s,d,p,len){
  let keys=Array.from({length:len},(_,i)=>({d,p:p+i}));
- if(p+len-1>12||keys.some(x=>isBlocked(group(),x.d,x.p)))return -1e9;
+ if(p+len-1>12||keys.some(x=>isBlocked(group(),x.d,x.p)||activitySlot(x.d,x.p)))return -1e9;
  let score=len*10;
  if(p===1)score+=60;if(p===6)score+=55;
  if(p+len-1<=8)score+=30;
@@ -514,6 +521,7 @@ function scoreBlock(s,d,p,len){
 }
 function autoSubject(s){
  let need=(s.t+s.p)-used(s.id);if(need<=0)return;
+ if(isActivitySubject(s)){for(const p of [7,8]){if(need<=0)break;let k=key(group().id,2,p);if(state.lessons[k])continue;let trial={planId:state.activePlanId,groupId:group().id,subjectId:s.id,teacherId:s.teacherId,roomId:s.roomId};if(!conflictsFor(group().id,2,p,trial).length){state.lessons[k]={...trial};need--;}}return;}
  while(need>0){
   let best=null;
   for(let d=0;d<5;d++)for(let p of [1,6,2,3,7,8,4,9,10,11,12])for(let len=Math.min(need,4);len>=1;len--){
@@ -629,7 +637,8 @@ addSubject.onclick=()=>{
 resetDemo.onclick=()=>{if(confirm('คืนค่าข้อมูลตัวอย่างทั้งหมด?')){state=demo();renderAll()}};
 addTeacher.onclick=()=>{let x=newTeacher.value.trim();if(!x)return;let type=prompt('ประเภทครู','ข้าราชการครู')||'ข้าราชการครู';let qualification=prompt('วุฒิการศึกษา','')||'';let specialDuty=prompt('หน้าที่พิเศษ','')||'';let inside=Number(prompt('เป้าคาบในต่อสัปดาห์',specialDuty?12:18));if(Number.isNaN(inside))inside=specialDuty?12:18;let outside=Number(prompt('เป้าคาบนอกต่อสัปดาห์',specialDuty?12:0));if(Number.isNaN(outside))outside=specialDuty?12:0;state.teachers.push({id:uid(),name:x,type,qualification,specialDuty,special:!!specialDuty.trim(),insideTarget:inside,outsideTarget:outside});newTeacher.value='';renderAll()};
 addRoom.onclick=()=>{let x=newRoom.value.trim();if(!x)return;state.rooms.push({id:uid(),name:x});newRoom.value='';renderAll()};
-subjectPick.onchange=()=>{let s=subject(subjectPick.value);if(s){teacherPick.value=s.teacherId;roomPick.value=s.roomId}renderStatus()};
+subjectPick.onchange=()=>{let s=subject(subjectPick.value);if(s){teacherPick.value=s.teacherId;renderRoomPickForTeacher(s.teacherId,s.roomId)}renderStatus()};
+teacherPick.onchange=()=>{let s=subject(subjectPick.value);renderRoomPickForTeacher(teacherPick.value,s?.roomId);};
 teacherView.onchange=()=>{renderTeacher();renderPreview(window.previewMode||'student')};
 autoOne.onclick=()=>{let s=subject(subjectPick.value);if(s)autoSubject(s);renderAll()};
 autoAll.onclick=()=>{let keep=state.currentGroupId;groupsForPlan().forEach(g=>{state.currentGroupId=g.id;planSubjects().forEach(autoSubject)});state.currentGroupId=keep;renderAll()};
@@ -824,7 +833,7 @@ window.addEventListener('load',()=>{
    let g=state.groups.find(x=>x.id===gid)||group();
    let h='<table class="schedule-paper"><thead><tr><th class="day">วัน / คาบ</th><th class="assembly">กิจกรรมหน้าเสาธง</th>'+Array.from({length:12},(_,i)=>`<th><div class="period-no">${i+1}</div><div class="period-time">${periodTimes[i]}</div></th>`).join('')+'</tr></thead><tbody>';
    days.forEach((d,di)=>{h+=`<tr><td class="day">${d}</td>${di===0?'<td class="assembly assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}`;
-     for(let p=1;p<=12;p++){let k=key(g.id,di,p),l=state.lessons[k],locked=p===5,activity=di===2&&(p===7||p===8);if(filterTeacherId&&(!l||l.teacherId!==filterTeacherId))l=null;let cf=l?conflictsFor(g.id,di,p,l,k):[];h+=`<td class="slot ${locked?'locked':''} ${activity?'activity':''} ${cf.length?'conflict':''}" title="${esc(cf.join(' / '))}" ${clickable&&!locked&&!activity?`data-key="${k}" draggable="${!!l}"`:''}>${locked?'พักกลางวัน':activity?'':(l?lessonHtml(l,!!filterTeacherId):'')}</td>`}h+='</tr>'});return h+'</tbody></table>';
+     for(let p=1;p<=12;p++){let k=key(g.id,di,p),l=state.lessons[k],locked=p===5,activity=di===2&&(p===7||p===8);if(filterTeacherId&&(!l||l.teacherId!==filterTeacherId))l=null;let cf=l?conflictsFor(g.id,di,p,l,k):[];h+=`<td class="slot ${locked?'locked':''} ${activity?'activity':''} ${cf.length?'conflict':''}" title="${esc(cf.join(' / '))}" ${clickable&&!locked?`data-key="${k}" draggable="${!!l}"`:''}>${locked?'พักกลางวัน':(l?lessonHtml(l,!!filterTeacherId):'')}</td>`}h+='</tr>'});return h+'</tbody></table>';
  }
  makeTeacherCombinedTable=function(tid){let h='<table class="schedule-paper"><thead><tr><th class="day">วัน / คาบ</th><th class="assembly">กิจกรรมหน้าเสาธง</th>'+Array.from({length:12},(_,i)=>`<th><div class="period-no">${i+1}</div><div class="period-time">${periodTimes[i]}</div></th>`).join('')+'</tr></thead><tbody>';days.forEach((d,di)=>{h+=`<tr><td class="day">${d}</td>${di===0?'<td class="assembly assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}`;for(let p=1;p<=12;p++){let locked=p===5,arr=teacherLessonAt(tid,di,p),html=arr.map(l=>lessonHtml(l,true)).join('<hr>');h+=`<td class="slot ${locked?'locked':''} ${arr.length>1?'conflict':''}">${locked?'พักกลางวัน':html}</td>`}h+='</tr>'});return h+'</tbody></table>'}
  // re-render once with merged assembly cells
