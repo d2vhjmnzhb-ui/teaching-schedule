@@ -70,11 +70,91 @@ table{border-collapse:collapse;width:100%;min-width:1050px;table-layout:fixed}th
 .cloudbar{max-width:1440px;margin:8px auto;padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .cloudbar .notice{margin:0;padding:7px 10px}
 
+
+/* v13 Modern Professional UI */
+:root{
+ --nav:#0f1f3a;--nav2:#172b4d;--primary:#2563eb;--bg:#f5f7fb;
+ --surface:#fff;--line:#dbe2ea;--text:#172033;--muted:#667085;
+ --success:#15803d;--danger:#c62828;--radius:12px;
+}
+html,body{background:var(--bg)!important;color:var(--text)!important}
+body{font-family:"Noto Sans Thai","Sarabun",Arial,sans-serif!important}
+.topbar{
+ background:rgba(255,255,255,.96)!important;border-bottom:1px solid var(--line)!important;
+ box-shadow:0 2px 12px rgba(15,31,58,.06)!important;min-height:64px!important;
+ display:flex!important;align-items:center!important;padding:0 22px!important;
+}
+.topbar h1,.topbar strong{color:var(--nav)!important}
+.tag{background:#eef4ff!important;color:#2457a7!important;border:1px solid #d8e5ff!important;border-radius:999px!important}
+nav{
+ background:var(--nav)!important;padding:10px!important;gap:6px!important;
+ box-shadow:0 8px 24px rgba(15,31,58,.12)!important;
+}
+nav button{
+ border-radius:9px!important;min-height:48px!important;padding:10px 14px!important;
+ color:#dbe6f7!important;transition:.15s ease!important;
+}
+nav button:hover,nav button.active{background:#274675!important;color:#fff!important;box-shadow:none!important}
+.card{
+ background:var(--surface)!important;border:1px solid var(--line)!important;
+ border-radius:var(--radius)!important;box-shadow:0 3px 14px rgba(15,31,58,.045)!important;
+}
+.btn{border-radius:8px!important;font-weight:600!important;box-shadow:none!important;min-height:40px!important}
+.btn.primary{background:var(--primary)!important;border-color:var(--primary)!important}
+.btn.light{background:#f8fafc!important;border:1px solid var(--line)!important;color:#344054!important}
+.btn.danger{background:#fff1f1!important;color:var(--danger)!important;border:1px solid #ffd3d3!important}
+input,select{
+ border:1px solid #cfd8e3!important;border-radius:8px!important;background:#fff!important;
+ min-height:42px!important;box-shadow:0 1px 2px rgba(16,24,40,.03)!important;
+}
+input:focus,select:focus{outline:2px solid #bfdbfe!important;border-color:#60a5fa!important}
+.subject,.teacher-card{
+ border:1px solid var(--line)!important;border-radius:10px!important;background:#fff!important;
+ box-shadow:none!important;padding:12px!important;
+}
+.notice{border-radius:9px!important}
+.schedule-paper{background:#fff!important}
+.schedule-paper th{background:#f1f5f9!important;color:#1e293b!important}
+.schedule-paper td,.schedule-paper th{border-color:#7b8794!important}
+.schedule-paper .locked{background:#eef1f4!important}
+.schedule-paper .activity{background:#fff3c4!important}
+.schedule-paper .conflict{background:#fee2e2!important;outline:2px solid #dc2626!important}
+.cloudbar{
+ position:sticky!important;bottom:10px!important;z-index:1000!important;
+ width:max-content!important;max-width:calc(100% - 24px)!important;
+ margin:10px 12px 10px auto!important;background:rgba(255,255,255,.95)!important;
+ backdrop-filter:blur(10px);border:1px solid var(--line)!important;border-radius:12px!important;
+ box-shadow:0 8px 30px rgba(15,31,58,.14)!important;padding:7px!important;
+}
+#cloudStatus{font-size:12px!important}
+.excel-sheet{background:#fff!important}
+@media (min-width:1100px){
+ body{padding-left:218px!important}
+ nav{
+  position:fixed!important;left:0!important;top:64px!important;bottom:0!important;width:218px!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;z-index:900!important;
+ }
+ nav button{width:100%!important;text-align:left!important}
+ .topbar{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:950!important}
+ main,.page.active{margin-top:64px!important}
+}
+@media (max-width:1099px){
+ body{padding-left:0!important}
+ .topbar{padding:0 12px!important;min-height:56px!important}
+ nav{display:flex!important;overflow-x:auto!important;white-space:nowrap!important;scrollbar-width:none!important}
+ nav::-webkit-scrollbar{display:none!important}
+ nav button{flex:0 0 auto!important;min-height:42px!important}
+ .card{border-radius:9px!important}
+ .schedule-paper{min-width:1450px!important}
+ #studentTable,#teacherTable,.table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+ .cloudbar{position:sticky!important;bottom:6px!important;margin-left:8px!important;margin-right:8px!important}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
-<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Cloud Connected v11 • College System • Schedule v8</span></header>
+<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Modern Professional v13 • College System • Schedule v8</span></header>
 <div class="app">
 <nav id="nav">
 <button data-page="homePage" class="active">หน้าหลัก</button>
@@ -255,7 +335,7 @@ function teacherLoad(tid){
 }
 function renderLists(){
  teacherList.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);let cls=(L.inside>t.insideTarget||L.outside>t.outsideTarget)?'load-over':((L.inside<t.insideTarget||L.outside<t.outsideTarget)?'load-warn':'load-ok');
- return `<div class="teacher-card"><b>${esc(t.name)}</b><span class="badge">${esc(t.type)}</span><div class="meta">${t.special?'มีหน้าที่พิเศษ • ':''}คาบใน <span class="${cls}">${L.inside}/${t.insideTarget}</span> • คาบนอก <span class="${cls}">${L.outside}/${t.outsideTarget}</span></div><div class="actions"><button class="btn light" onclick="editTeacher('${t.id}')">แก้ไข</button><button class="btn danger" onclick="removeTeacherById('${t.id}')">ลบ</button></div></div>`}).join('');
+ return `<div class="teacher-card"><b>${esc(t.name)}</b><span class="badge">${esc(t.type)}</span><div class="meta">วุฒิการศึกษา: ${esc(t.qualification||'-')} • หน้าที่พิเศษ: ${esc(t.specialDuty||(t.special?'มีหน้าที่พิเศษ':'-'))}</div><div class="meta">คาบใน <span class="${cls}">${L.inside}/${t.insideTarget}</span> • คาบนอก <span class="${cls}">${L.outside}/${t.outsideTarget}</span></div><div class="actions"><button class="btn light" onclick="editTeacher('${t.id}')">แก้ไข</button><button class="btn danger" onclick="removeTeacherById('${t.id}')">ลบ</button></div></div>`}).join('');
  roomList.innerHTML=state.rooms.map(r=>`<div class="subject"><div>${esc(r.name)}</div><button class="btn danger" onclick="removeRoomById('${r.id}')">ลบ</button></div>`).join('');
 }
 function renderStatus(){
@@ -312,10 +392,12 @@ function editTeacher(id){
  let t=teacher(id);if(!t)return;
  let name=prompt('ชื่อครู',t.name);if(name===null)return;
  let type=prompt('ประเภทครู',t.type);if(type===null)return;
- let special=confirm('ครูคนนี้มีหน้าที่พิเศษหรือไม่?\nกด OK = มี / Cancel = ไม่มี');
+ let qualification=prompt('วุฒิการศึกษา',t.qualification||'');if(qualification===null)return;
+ let specialDuty=prompt('หน้าที่พิเศษ',t.specialDuty||'');if(specialDuty===null)return;
+ let special=!!specialDuty.trim();
  let inside=Number(prompt('เป้าคาบในต่อสัปดาห์',t.insideTarget)); if(Number.isNaN(inside))inside=t.insideTarget;
  let outside=Number(prompt('เป้าคาบนอกต่อสัปดาห์',t.outsideTarget)); if(Number.isNaN(outside))outside=t.outsideTarget;
- Object.assign(t,{name,type,special,insideTarget:inside,outsideTarget:outside});renderAll();
+ Object.assign(t,{name,type,qualification,specialDuty,special,insideTarget:inside,outsideTarget:outside});renderAll();
 }
 function editSubject(id){
  let s=subject(id);if(!s)return;
@@ -356,7 +438,7 @@ addSubject.onclick=()=>{
  state.subjects.push({id:uid(),groupId:group().id,code,name,t,p,n,teacherId:tid,roomId:rid});renderAll()
 };
 resetDemo.onclick=()=>{if(confirm('คืนค่าข้อมูลตัวอย่างทั้งหมด?')){state=demo();renderAll()}};
-addTeacher.onclick=()=>{let x=newTeacher.value.trim();if(!x)return;state.teachers.push({id:uid(),name:x,type:'ข้าราชการครู',special:false,insideTarget:18,outsideTarget:0});newTeacher.value='';renderAll()};
+addTeacher.onclick=()=>{let x=newTeacher.value.trim();if(!x)return;let type=prompt('ประเภทครู','ข้าราชการครู')||'ข้าราชการครู';let qualification=prompt('วุฒิการศึกษา','')||'';let specialDuty=prompt('หน้าที่พิเศษ','')||'';let inside=Number(prompt('เป้าคาบในต่อสัปดาห์',specialDuty?12:18));if(Number.isNaN(inside))inside=specialDuty?12:18;let outside=Number(prompt('เป้าคาบนอกต่อสัปดาห์',specialDuty?12:0));if(Number.isNaN(outside))outside=specialDuty?12:0;state.teachers.push({id:uid(),name:x,type,qualification,specialDuty,special:!!specialDuty.trim(),insideTarget:inside,outsideTarget:outside});newTeacher.value='';renderAll()};
 addRoom.onclick=()=>{let x=newRoom.value.trim();if(!x)return;state.rooms.push({id:uid(),name:x});newRoom.value='';renderAll()};
 subjectPick.onchange=()=>{let s=subject(subjectPick.value);if(s){teacherPick.value=s.teacherId;roomPick.value=s.roomId}renderStatus()};
 teacherView.onchange=()=>{renderTeacher();renderPreview(window.previewMode||'student')};
@@ -390,7 +472,7 @@ renderAll();
 /* v10 cloud persistence: Google Sheets + Apps Script */
 const CLOUD_CFG_KEY='collegeScheduleCloudConfigV10';
 function cloudConfig(){
-  try{return JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{url:'https://script.google.com/macros/s/AKfycbyo_Sg-b3SVbxMLKLtt3Q4ZnCd_KxjA_UUxgAP6Qm6qmy6D7X4e_UBlCBBzpyPw0Rp9/exec',key:'college-2569'}}catch(e){return {url:'https://script.google.com/macros/s/AKfycbyo_Sg-b3SVbxMLKLtt3Q4ZnCd_KxjA_UUxgAP6Qm6qmy6D7X4e_UBlCBBzpyPw0Rp9/exec',key:'college-2569'}}
+  try{return JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{url:'https://script.google.com/macros/s/AKfycby3iBj7uT9jPMg7wg6UqFD2-YEu7vfEp4XJxukUrExPYv6zPmxfZ_i5Duh_y6SUjtM/exec',key:'college-2569'}}catch(e){return {url:'https://script.google.com/macros/s/AKfycby3iBj7uT9jPMg7wg6UqFD2-YEu7vfEp4XJxukUrExPYv6zPmxfZ_i5Duh_y6SUjtM/exec',key:'college-2569'}}
 }
 function saveCloudConfig(c){localStorage.setItem(CLOUD_CFG_KEY,JSON.stringify(c))}
 async function cloudSave(){
