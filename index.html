@@ -830,3 +830,76 @@ a[x-apple-data-detectors]{
 #planPage #level,#planPage #year,#planPage #semester,#planPage #academicYear,#planPage #term{pointer-events:none;background:#f7f7f7}
 @media(max-width:700px){.dles-search{grid-template-columns:1fr}.dles-search .btn{width:100%}}
 </style>
+
+<style>
+/* v26: PDF รายวิชา - ช่อง ท/ป/น/ช แคบพอดีตัวเลข */
+.excel-courses{table-layout:fixed!important}
+.excel-courses th:nth-child(1),.excel-courses td:nth-child(1),
+.excel-courses th:nth-child(10),.excel-courses td:nth-child(10){width:9%!important}
+.excel-courses th:nth-child(6),.excel-courses td:nth-child(6),
+.excel-courses th:nth-child(7),.excel-courses td:nth-child(7),
+.excel-courses th:nth-child(8),.excel-courses td:nth-child(8),
+.excel-courses th:nth-child(9),.excel-courses td:nth-child(9),
+.excel-courses th:nth-child(15),.excel-courses td:nth-child(15),
+.excel-courses th:nth-child(16),.excel-courses td:nth-child(16),
+.excel-courses th:nth-child(17),.excel-courses td:nth-child(17),
+.excel-courses th:nth-child(18),.excel-courses td:nth-child(18){width:2.5%!important;padding-left:0!important;padding-right:0!important}
+/* ช่องคาบ: 3 บรรทัดจริง ไม่เอารหัส/ห้อง/ชื่อมาต่อแถวเดียว */
+.lesson{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:1px!important;line-height:1.05!important}
+.lesson .lesson-line{display:block!important;width:100%!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important}
+</style>
+<script>
+(function v26(){
+  function usedForGroup(sid,gid=state.currentGroupId){
+    return Object.entries(state.lessons).filter(([k,l])=>{const q=parseKey(k);return q.pid===state.activePlanId&&q.gid===gid&&l.subjectId===sid}).length;
+  }
+  window.usedForGroup=usedForGroup;
+
+  // หน้าจัดตารางเลือกได้เฉพาะห้อง/กลุ่มของแผนที่เลือกจากหน้าแผนเท่านั้น
+  function rebuildSchedulePlanControls(){
+    const grid=document.querySelector('#schedulePage .grid'); if(!grid)return;
+    ['scheduleLevelPick','scheduleYearPick'].forEach(id=>document.getElementById(id)?.closest('label')?.remove());
+    let sel=document.getElementById('scheduleGroupPick');
+    if(!sel){
+      const label=document.createElement('label'); label.innerHTML='ห้อง / กลุ่ม<select id="scheduleGroupPick"></select>'; grid.insertBefore(label,grid.firstChild); sel=label.querySelector('select');
+    }
+    const p=plan(), gs=groupsForPlan(p);
+    if(!gs.some(g=>g.id===state.currentGroupId)&&gs[0])state.currentGroupId=gs[0].id;
+    sel.innerHTML=gs.map(g=>`<option value="${g.id}" ${g.id===state.currentGroupId?'selected':''}>${esc(g.name)}</option>`).join('');
+    let note=document.getElementById('schedulePlanLocked');
+    if(!note){note=document.createElement('div');note.id='schedulePlanLocked';note.className='notice';grid.parentElement.insertBefore(note,grid)}
+    note.innerHTML=`แผนที่กำลังจัด: <b>${esc(p.name||'')}</b> • หากต้องการเปลี่ยนระดับ/ชั้นปี/ภาคเรียน ให้เลือกจากหน้า “แผนการเรียน”`;
+  }
+
+  // รายการวิชา: วิชาครบแล้วหาย เหลือเฉพาะวิชาที่ยังขาด พร้อมจำนวนชั่วโมงคงเหลือ
+  const baseRenderPicks=renderPicks;
+  renderPicks=function(){
+    baseRenderPicks(); rebuildSchedulePlanControls();
+    const gid=state.currentGroupId, all=planSubjects();
+    const pending=all.filter(s=>usedForGroup(s.id,gid)<Number(s.t||0)+Number(s.p||0));
+    const previous=subjectPick.value;
+    subjectPick.innerHTML=pending.map(s=>{const need=Number(s.t||0)+Number(s.p||0),u=usedForGroup(s.id,gid);return `<option value="${s.id}">${esc(s.code)} ${esc(s.name)} — เหลือ ${need-u} ชม.</option>`}).join('');
+    if(pending.some(s=>s.id===previous))subjectPick.value=previous;
+    teacherPick.disabled=true;roomPick.disabled=true;
+    teacherPick.title='กำหนดครูผู้สอนจากหน้าแผนการเรียน';roomPick.title='กำหนดห้องเรียนจากหน้าแผนการเรียน';
+  };
+  renderStatus=function(){
+    const gid=state.currentGroupId, all=planSubjects(), pending=all.filter(s=>usedForGroup(s.id,gid)<Number(s.t||0)+Number(s.p||0));
+    if(!all.length){subjectStatus.className='notice';subjectStatus.textContent='ยังไม่มีรายวิชาในแผนนี้ กรุณาเพิ่มจากหน้าแผนการเรียน';return}
+    if(!pending.length){subjectStatus.className='notice good';subjectStatus.textContent='จัดรายวิชาครบทุกวิชาแล้วสำหรับห้องนี้';return}
+    const s=subject(subjectPick.value)||pending[0],need=Number(s.t||0)+Number(s.p||0),u=usedForGroup(s.id,gid);
+    subjectStatus.className='notice';subjectStatus.textContent=`ยังจัดไม่ครบ ${pending.length} วิชา • ${s.code} ${s.name} เหลือ ${need-u} ชม. (จัดแล้ว ${u}/${need})`;
+  };
+  // แยกสามบรรทัดชัดเจน
+  lessonHtml=function(l,teacherMode=false){
+    const s=subject(l.subjectId),g=state.groups.find(x=>x.id===l.groupId),r=room(l.roomId); if(!s)return '';
+    if(teacherMode)return `<div class="lesson teacher-lesson"><span class="lesson-line"><b>${esc(s.code)}</b></span><span class="lesson-line">${esc(r?.name||'')}</span><span class="lesson-line"><strong>${esc(groupShortName(g))}</strong></span></div>`;
+    return `<div class="lesson student-lesson"><span class="lesson-line"><b>${esc(s.name)}</b></span><span class="lesson-line">${esc(r?.name||'')}</span><span class="lesson-line"><strong>${esc(teacherShortName(teacher(l.teacherId)?.name))}</strong></span></div>`;
+  };
+  // เปลี่ยนห้องได้ แต่ไม่เปลี่ยนแผนจากหน้าจัดตาราง
+  document.addEventListener('change',e=>{if(e.target?.id==='scheduleGroupPick'){state.currentGroupId=e.target.value;renderAll()}});
+  const baseRenderAll=renderAll;
+  renderAll=function(){baseRenderAll();rebuildSchedulePlanControls()};
+  renderAll();
+})();
+</script>
