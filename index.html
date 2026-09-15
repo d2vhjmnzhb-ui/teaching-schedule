@@ -212,6 +212,22 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+
+<style>
+/* v34: print/PDF only — close the entire top information block and preserve far-right border */
+.excel-top{border:1px solid #000!important;gap:0!important;box-sizing:border-box!important;overflow:visible!important}
+.excel-identity{border-right:1px solid #000!important;box-sizing:border-box!important}
+.excel-courses{border-collapse:collapse!important;border:0!important;box-sizing:border-box!important}
+.excel-courses th:last-child,.excel-courses td:last-child{border-right:1px solid #000!important}
+.excel-courses tr:first-child th{border-top:0!important}
+.excel-courses tr:last-child td{border-bottom:0!important}
+.excel-courses th:first-child,.excel-courses td:first-child{border-left:0!important}
+@media print{
+ .excel-top{border:1px solid #000!important;gap:0!important}
+ .excel-identity{border-right:1px solid #000!important}
+ .excel-courses th:last-child,.excel-courses td:last-child{border-right:1px solid #000!important}
+}
+</style>
 </head>
 <body>
 <header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">Professional v17 • College System • Schedule</span></header>
@@ -723,9 +739,15 @@ async function cloudSave(){
     try{
       r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body,signal:controller.signal});
     }finally{clearTimeout(timer)}
-    const text=await r.text();
-    let j; try{j=JSON.parse(text)}catch(_){throw new Error('Cloud ตอบกลับไม่ถูกต้อง กรุณาตรวจ Apps Script /exec')}
-    if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
+    const text=(await r.text()).trim();
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    // รองรับ Apps Script เดิมทั้ง JSON และข้อความธรรมดา เช่น ok / success / saved
+    // เพื่อไม่ให้การบันทึกล้มเหลวเพียงเพราะรูปแบบ response ต่างกัน
+    let j=null;
+    try{j=text?JSON.parse(text):null}catch(_){j=null}
+    if(j && typeof j==='object' && j.ok===false) throw new Error(j.error||'Cloud ปฏิเสธการบันทึก');
+    if(!j && /^\s*<!doctype|^\s*<html/i.test(text)) throw new Error('Apps Script ส่งหน้าเว็บกลับมา กรุณาตรวจสิทธิ์ Web App /exec');
+    if(!j && /error|failed|exception/i.test(text) && !/success|saved|บันทึกสำเร็จ/i.test(text)) throw new Error(text.slice(0,180));
     cloudStatus.textContent='บันทึก Cloud แล้ว • '+new Date().toLocaleString('th-TH')+' • '+Math.ceil(payload.length/1024)+' KB';
     cloudStatus.className='notice good';
   }catch(e){
@@ -1172,3 +1194,112 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
 .excel-schedule.pdf-fixed td.pdf-merged-subject{vertical-align:middle!important;text-align:center!important;padding:2px 4px!important}
 .excel-schedule.pdf-fixed td.pdf-merged-subject .lesson{width:100%!important;height:100%!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important}
 </style>
+
+<!-- v35: แยกแผนการเรียนออกจากห้อง/กลุ่ม + ห้องตกค้าง -->
+<style>
+#v35PlanRule{margin-top:10px}.backlog-subjects{min-height:120px}.group-type-badge{display:inline-block;padding:2px 8px;border:1px solid #cbd5e1;border-radius:999px;font-size:12px;margin-left:6px}
+</style>
+<script>
+(function v35PlanAndGroups(){
+  // แผน = ระดับ + ชั้นปี + ภาคเรียน + ปีการศึกษา เท่านั้น ห้องทุกห้องในชั้นปีนั้นใช้แผนเดียวกัน
+  function isBacklogGroup(g){return !!g && g.groupType==='backlog'}
+  function subjectsForCurrentGroup(){
+    const g=group();
+    if(isBacklogGroup(g)){
+      const ids=Array.isArray(g.allowedSubjectIds)?g.allowedSubjectIds:[];
+      return state.subjects.filter(s=>ids.includes(s.id));
+    }
+    return planSubjects(state.activePlanId);
+  }
+  window.subjectsForCurrentGroup=subjectsForCurrentGroup;
+
+  // อัปเกรดข้อมูลห้องเดิมให้เป็นห้องปกติ โดยไม่เปลี่ยนข้อมูลเดิมอื่น ๆ
+  state.groups.forEach(g=>{if(!g.groupType)g.groupType='normal';if(!Array.isArray(g.allowedSubjectIds))g.allowedSubjectIds=[]});
+
+  // ปรับคำอธิบายหน้าแผนให้ชัดว่าไม่สร้างรายวิชาตามห้อง
+  const subjectCard=document.querySelector('#planPage #subjects')?.closest('.card');
+  if(subjectCard && !document.getElementById('v35PlanRule')){
+    const n=document.createElement('div');n.id='v35PlanRule';n.className='notice good';
+    n.innerHTML='<b>หลักการ:</b> รายวิชากรอกครั้งเดียวต่อระดับ + ชั้นปี + ภาคเรียน เช่น ปวช.1 เทอม 1 หนึ่งแผนใช้ร่วมกันทุกห้อง/ทุกกลุ่มของ ปวช.1';
+    subjectCard.insertBefore(n,subjectCard.querySelector('.dles-search'));
+  }
+
+  // ปรับส่วนสร้างห้อง/กลุ่มให้รองรับห้องปกติและนักเรียนตกค้าง
+  const admin=document.getElementById('groupAdmin');
+  if(admin && !document.getElementById('gaType')){
+    const grid=admin.querySelector('.grid');
+    const typeLab=document.createElement('label');
+    typeLab.innerHTML='ประเภทห้อง<select id="gaType"><option value="normal">ห้องปกติ</option><option value="backlog">นักเรียนตกค้าง</option></select>';
+    grid.insertBefore(typeLab,grid.firstChild);
+    const backlog=document.createElement('div');backlog.id='gaBacklogBox';backlog.style.display='none';backlog.innerHTML='<label>วิชาที่ลงเรียนใหม่ (เลือกได้หลายวิชา)<select id="gaBacklogSubjects" class="backlog-subjects" multiple></select></label><p class="muted">ห้องตกค้างไม่บังคับตามแผน สามารถเลือกเฉพาะวิชาที่ติด ขร. / ต้องลงเรียนใหม่ได้</p>';
+    grid.parentElement.insertBefore(backlog,admin.querySelector('.actions'));
+    const typeSel=document.getElementById('gaType'), multi=document.getElementById('gaBacklogSubjects');
+    function fillBacklog(){
+      const seen=new Set();
+      multi.innerHTML=state.subjects.filter(s=>{const k=String(s.code||'')+'|'+String(s.name||'');if(seen.has(k))return false;seen.add(k);return true}).map(s=>`<option value="${s.id}">${esc(s.code)} ${esc(s.name)}</option>`).join('');
+    }
+    typeSel.onchange=()=>{backlog.style.display=typeSel.value==='backlog'?'block':'none';fillBacklog()};fillBacklog();
+
+    // แทนปุ่มเพิ่มห้องเดิม: ห้องปกติผูกกับระดับ/ชั้นปี, ห้องตกค้างเลือกวิชาอิสระ
+    const add=admin.querySelector('#gaAdd');
+    add.onclick=()=>{
+      const lev=normalizeLevel(document.getElementById('gaLevel').value),yr=document.getElementById('gaYear').value,r=document.getElementById('gaRoom').value.trim()||'1',gr=document.getElementById('gaGroup').value.trim()||'1',typ=typeSel.value;
+      if(state.groups.some(g=>g.level===lev&&String(g.year)===yr&&String(g.roomNo)===r&&String(g.groupNo)===gr&&g.groupType===typ))return alert('มีห้อง/กลุ่มนี้แล้ว');
+      const ds=defaultDeptShort(lev),g={id:uid(),level:lev,year:yr,roomNo:r,groupNo:gr,deptShort:ds,advisor:document.getElementById('gaAdvisor').value.trim(),groupType:typ,allowedSubjectIds:typ==='backlog'?[...multi.selectedOptions].map(o=>o.value):[]};
+      rebuildGroupName(g);if(typ==='backlog')g.name=`ตกค้าง • ${g.name}`;
+      g.groupCode=`${shortAcademicYear(plan()?.academicYear||2569)}${ds}${yr}/${r}-${gr}`;
+      if(typ==='backlog'&&!g.allowedSubjectIds.length)return alert('กรุณาเลือกอย่างน้อย 1 วิชาสำหรับนักเรียนตกค้าง');
+      state.groups.push(g);state.currentGroupId=g.id;renderAll();
+    };
+  }
+
+  // รายการห้องในหน้าจัดตาราง: ห้องปกติทุกห้องของระดับ/ชั้นปีเดียวกัน + ห้องตกค้างของระดับนั้น
+  groupsForPlan=function(p=plan()){
+    return state.groups.filter(g=>g.level===p.level && String(g.year)===String(p.year));
+  };
+
+  // บังคับ selector หน้าจัดตารางให้แสดงทุกห้องของชั้นปี ไม่ผูกกับแผนรายห้อง
+  function refreshGroupSelector(){
+    const sel=document.getElementById('scheduleGroupPick');if(!sel)return;
+    const gs=groupsForPlan(plan());
+    if(!gs.some(g=>g.id===state.currentGroupId)&&gs[0])state.currentGroupId=gs[0].id;
+    sel.innerHTML=gs.map(g=>`<option value="${g.id}" ${g.id===state.currentGroupId?'selected':''}>${esc(g.name)}${isBacklogGroup(g)?' • เลือกวิชาอิสระ':''}</option>`).join('');
+    if(!gs.length)sel.innerHTML='<option value="">ยังไม่มีห้อง/กลุ่ม — เพิ่มที่เมนู ครู / ห้องเรียน</option>';
+  }
+
+  // หลัง render เดิม ให้สร้างรายวิชาตามประเภทห้องใหม่อีกครั้ง
+  const prevRenderPicks=renderPicks;
+  renderPicks=function(){
+    prevRenderPicks();refreshGroupSelector();
+    const gid=state.currentGroupId,all=subjectsForCurrentGroup(),previous=window.__v35Subject||subjectPick.value;
+    const pending=all.filter(s=>usedForGroup(s.id,gid)<Number(s.t||0)+Number(s.p||0));
+    subjectPick.innerHTML=pending.map(s=>{const need=Number(s.t||0)+Number(s.p||0),u=usedForGroup(s.id,gid);return `<option value="${s.id}">${esc(s.code)} ${esc(s.name)} — เหลือ ${need-u} ชม.</option>`}).join('');
+    if(pending.some(s=>s.id===previous))subjectPick.value=previous;else if(pending[0])subjectPick.value=pending[0].id;
+    window.__v35Subject=subjectPick.value;
+    const s=subject(subjectPick.value);if(s){if(s.teacherId&&state.teachers.some(t=>t.id===s.teacherId))teacherPick.value=s.teacherId;if(s.roomId)roomPick.value=s.roomId}
+  };
+  subjectPick.addEventListener('change',()=>{window.__v35Subject=subjectPick.value});
+
+  const prevStatus=renderStatus;
+  renderStatus=function(){
+    const g=group(),all=subjectsForCurrentGroup();
+    if(!g)return prevStatus();
+    const pending=all.filter(s=>usedForGroup(s.id,g.id)<Number(s.t||0)+Number(s.p||0));
+    if(!all.length){subjectStatus.className='notice';subjectStatus.textContent=isBacklogGroup(g)?'ห้องตกค้างนี้ยังไม่ได้เลือกวิชาที่ต้องลงเรียนใหม่':'ยังไม่มีรายวิชาในแผนนี้';return}
+    if(!pending.length){subjectStatus.className='notice good';subjectStatus.textContent='จัดรายวิชาครบทุกวิชาแล้วสำหรับห้องนี้';return}
+    const s=subject(subjectPick.value)||pending[0],need=Number(s.t||0)+Number(s.p||0),u=usedForGroup(s.id,g.id);
+    subjectStatus.className='notice';subjectStatus.textContent=`${isBacklogGroup(g)?'นักเรียนตกค้าง • ':''}ยังจัดไม่ครบ ${pending.length} วิชา • ${s.code} ${s.name} เหลือ ${need-u} ชม. (จัดแล้ว ${u}/${need})`;
+  };
+
+  // Auto ทุกวิชา ใช้เฉพาะวิชาที่ห้องนั้นมีสิทธิ์เรียน
+  autoAll.onclick=()=>{
+    const keep=state.currentGroupId;
+    groupsForPlan().forEach(g=>{state.currentGroupId=g.id;subjectsForCurrentGroup().slice().sort((a,b)=>{const ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;return ap-bp||((b.t+b.p)-(a.t+a.p))}).forEach(autoSubject)});
+    state.currentGroupId=keep;renderAll();
+  };
+
+  const oldRenderAll=renderAll;
+  renderAll=function(){oldRenderAll();refreshGroupSelector();};
+  renderAll();
+})();
+</script>
