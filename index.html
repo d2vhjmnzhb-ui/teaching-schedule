@@ -1303,3 +1303,23 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   renderAll();
 })();
 </script>
+<style>
+/* v36: หน้าแผนไม่แสดงฟังก์ชันชั้นเรียนเดิมอีกต่อไป — ห้อง/กลุ่มจัดการที่เมนูครู/ห้องเรียน */
+#planPage > .card:nth-of-type(2){display:none!important}
+</style>
+<script>
+(function v36(){
+  /* นับชั่วโมงเฉพาะห้อง/กลุ่มที่กำลังจัด ห้ามเอาคาบของห้องอื่นมารวม */
+  used=function(sid,gid=state.currentGroupId){
+    return Object.entries(state.lessons).filter(([k,l])=>{
+      const q=parseKey(k);
+      return q.pid===state.activePlanId && q.gid===gid && l.subjectId===sid;
+    }).length;
+  };
+  if(window.usedForGroup){
+    window.usedForGroup=function(sid,gid=state.currentGroupId){return used(sid,gid)};
+  }
+  /* รีเฟรชสถานะหลังแก้ตัวนับ โดยไม่แตะ PDF/Cloud/ส่วนอื่น */
+  renderAll();
+})();
+</script>
