@@ -1473,3 +1473,92 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   ensureBox();renderSmartSuggestions();
 })();
 </script>
+
+<style>
+/* v39: แจ้งตรวจความครบของแต่ละห้องให้ชัดเจน */
+#v39Audit{margin-top:8px;font-size:13px;line-height:1.45}
+#v39Audit.bad{color:#b42318;background:#fff4f2;border:1px solid #fecdca;border-radius:10px;padding:8px 10px}
+</style>
+<script>
+(function v39RoomCompleteAndJointClass(){
+  /* เรียนรวม: ถ้าเป็นวิชาเดียวกัน ครูเดียวกัน ห้องเดียวกัน เวลาเดียวกัน
+     อนุญาตให้หลายกลุ่มใช้คาบนั้นร่วมกันได้ */
+  function isJointCompatible(a,b){
+    return !!(a&&b&&a.subjectId===b.subjectId&&a.teacherId===b.teacherId&&a.roomId===b.roomId);
+  }
+  conflictsFor=function(gid,d,p,lesson,ignoreKey=null){
+    const out=[];
+    for(const [k,l] of Object.entries(state.lessons)){
+      if(k===ignoreKey)continue;
+      const q=parseKey(k);if(q.pid!==state.activePlanId||q.d!==d||q.p!==p)continue;
+      if(q.gid===gid){out.push('กลุ่มนักเรียนชน');continue}
+      if(lesson.teacherId&&l.teacherId===lesson.teacherId&&!isJointCompatible(lesson,l))out.push(`ครู ${teacher(l.teacherId)?.name||''} ชน`);
+      /* ห้องเดียวกันไม่ถือว่าชน — รองรับทั้งเรียนรวมและการกำหนดห้องร่วม */
+    }
+    return [...new Set(out)];
+  };
+
+  function requiredHours(s){return Number(s.t||0)+Number(s.p||0)}
+  function actualUsed(sid,gid){
+    return Object.entries(state.lessons).reduce((n,[k,l])=>{const q=parseKey(k);return n+(q.pid===state.activePlanId&&q.gid===gid&&l.subjectId===sid?1:0)},0);
+  }
+  /* ให้ทุกจุดในเวอร์ชันหลังสุดใช้ตัวนับเดียวกันจริง ๆ */
+  used=function(sid,gid=state.currentGroupId){return actualUsed(sid,gid)};
+  window.usedForGroup=function(sid,gid=state.currentGroupId){return actualUsed(sid,gid)};
+
+  function tryMirrorJointLesson(s,gid,need){
+    if(need<=0)return 0;
+    const tid=s.teacherId||teacherPick.value,rid=s.roomId||roomPick.value;
+    if(!tid||!rid)return 0;
+    let added=0;
+    const slots=Object.entries(state.lessons).filter(([k,l])=>{
+      const q=parseKey(k);return q.pid===state.activePlanId&&q.gid!==gid&&l.subjectId===s.id&&l.teacherId===tid&&l.roomId===rid;
+    }).sort((a,b)=>{const A=parseKey(a[0]),B=parseKey(b[0]);return A.d-B.d||A.p-B.p});
+    for(const [ok,l] of slots){
+      if(added>=need)break;const q=parseKey(ok),dk=key(gid,q.d,q.p);if(state.lessons[dk])continue;
+      const trial={...l,planId:state.activePlanId,groupId:gid};
+      if(!conflictsFor(gid,q.d,q.p,trial).length){state.lessons[dk]=trial;added++}
+    }
+    return added;
+  }
+
+  const smartAuto=autoSubject;
+  autoSubject=function(s){
+    const gid=state.currentGroupId;let need=requiredHours(s)-actualUsed(s.id,gid);if(need<=0)return;
+    /* ก่อนหาช่องใหม่ ลองเข้าเรียนรวมกับกลุ่มที่จัดวิชาเดียวกันไว้แล้ว */
+    need-=tryMirrorJointLesson(s,gid,need);
+    if(need>0)smartAuto(s);
+  };
+
+  /* Auto ทุกห้อง + validation pass: วนซ้ำเพื่อเติมวิชาที่ขาดจริงของแต่ละห้อง */
+  autoAll.onclick=()=>{
+    const keep=state.currentGroupId,gs=groupsForPlan();
+    for(let pass=0;pass<3;pass++){
+      let changed=false;
+      gs.forEach(g=>{
+        state.currentGroupId=g.id;
+        const before=Object.keys(state.lessons).length;
+        subjectsForCurrentGroup().slice().sort((a,b)=>{
+          const ap=String(a.code||'').startsWith('20000')?0:1,bp=String(b.code||'').startsWith('20000')?0:1;
+          return ap-bp||(requiredHours(b)-requiredHours(a));
+        }).forEach(s=>{if(actualUsed(s.id,g.id)<requiredHours(s))autoSubject(s)});
+        if(Object.keys(state.lessons).length>before)changed=true;
+      });
+      if(!changed)break;
+    }
+    state.currentGroupId=keep;renderAll();saveLocal();
+  };
+
+  function auditCurrentRoom(){
+    const g=group(),status=document.getElementById('subjectStatus');if(!g||!status)return;
+    const all=subjectsForCurrentGroup();
+    const missing=all.map(s=>({s,need:requiredHours(s),have:actualUsed(s.id,g.id)})).filter(x=>x.have<x.need);
+    let a=document.getElementById('v39Audit');if(!a){a=document.createElement('div');a.id='v39Audit';status.insertAdjacentElement('afterend',a)}
+    if(!missing.length){a.className='';a.textContent='';status.className='notice good';status.textContent=`จัดรายวิชาครบทุกวิชาแล้วสำหรับห้องนี้ • ${all.reduce((n,s)=>n+requiredHours(s),0)} ชม.`;return}
+    status.className='notice';status.textContent=`ห้องนี้ยังจัดไม่ครบ ${missing.length} วิชา`;
+    a.className='bad';a.innerHTML='<b>วิชาที่ยังขาด:</b> '+missing.map(x=>`${esc(x.s.code)} ${esc(x.s.name)} ${x.have}/${x.need} ชม.`).join(' • ');
+  }
+  const prevRenderAll=renderAll;renderAll=function(){prevRenderAll();setTimeout(auditCurrentRoom,0)};
+  renderAll();
+})();
+</script>
