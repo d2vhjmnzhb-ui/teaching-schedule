@@ -2113,3 +2113,51 @@ var saveLocal = (typeof save === 'function') ? save : function(){};
   };
 })();
 </script>
+
+<style id="v47-desktop-fullwidth-fix">
+/* v47: desktop full-width workspace fix. Keep tablet/mobile layout unchanged. */
+@media screen and (min-width:1100px){
+  html,body{width:100%!important;max-width:none!important;overflow-x:hidden!important}
+  body{padding-left:0!important}
+  header{
+    margin-left:218px!important;
+    width:calc(100% - 218px)!important;
+    max-width:none!important;
+  }
+  .app{
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+  }
+  nav{
+    position:fixed!important;
+    left:0!important;top:0!important;bottom:0!important;
+    width:218px!important;
+    padding-top:72px!important;
+    z-index:900!important;
+  }
+  main{
+    display:block!important;
+    margin-left:218px!important;
+    margin-top:0!important;
+    width:calc(100% - 218px)!important;
+    max-width:none!important;
+    min-width:0!important;
+    padding:22px!important;
+  }
+  main>.page,
+  main>.page.active{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    margin-top:0!important;
+  }
+  main>.page.active{display:block!important}
+  .card{width:100%!important;max-width:none!important}
+  .tablewrap,.table-wrap,#studentTable,#teacherTable{max-width:100%!important}
+  .cloudbar{max-width:calc(100% - 242px)!important}
+}
+</style>
