@@ -2161,3 +2161,124 @@ var saveLocal = (typeof save === 'function') ? save : function(){};
   .cloudbar{max-width:calc(100% - 242px)!important}
 }
 </style>
+
+<style id="v48-excel-import-style">
+.excel-import-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:5000;display:flex;align-items:center;justify-content:center;padding:18px}
+.excel-import-backdrop.hide{display:none!important}.excel-import-dialog{background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);width:min(1050px,96vw);max-height:92vh;overflow:auto;padding:20px}
+.excel-import-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}.excel-import-head h2{margin:0 0 4px}.excel-import-controls{margin-bottom:12px}.excel-import-tablewrap{overflow:auto;max-height:48vh;border:1px solid #dbe4ee;border-radius:12px;margin-top:12px}
+.excel-import-table{width:100%;border-collapse:collapse;background:#fff}.excel-import-table th,.excel-import-table td{padding:8px 10px;border-bottom:1px solid #e7edf4;text-align:left}.excel-import-table th{position:sticky;top:0;background:#f5f8fc;z-index:1}.excel-import-table td:nth-child(4),.excel-import-table td:nth-child(5),.excel-import-table td:nth-child(6),.excel-import-table td:nth-child(7){text-align:center}.excel-import-warn{background:#fff7df}
+@media(max-width:760px){.excel-import-dialog{padding:14px}.excel-import-controls{display:block!important}.excel-import-controls label{display:block;margin-bottom:8px}}
+</style>
+<script>
+(function(){
+'use strict';
+const CODE_RE=/^\s*\d{5}-\d{4}\s*$/;
+const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
+const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+let importBook=null, importRows=[];
+function ensureImportUI(){
+  const subjects=document.getElementById('subjects'); if(!subjects||document.getElementById('excelPlanImportBtn')) return;
+  const actions=subjects.nextElementSibling;
+  const btn=document.createElement('button'); btn.type='button'; btn.className='btn light'; btn.id='excelPlanImportBtn'; btn.textContent='นำเข้าแผนจาก Excel';
+  const input=document.createElement('input'); input.type='file'; input.accept='.xlsx,.xls'; input.id='excelPlanImportFile'; input.className='hide';
+  actions?.insertBefore(btn,actions.firstChild); actions?.appendChild(input);
+  const modal=document.createElement('div'); modal.id='excelImportModal'; modal.className='excel-import-backdrop hide';
+  modal.innerHTML=`<div class="excel-import-dialog"><div class="excel-import-head"><div><h2>นำเข้าแผนจาก Excel</h2><div class="muted">อ่านไฟล์แผนเดิมของวิทยาลัย แล้วตรวจสอบก่อนบันทึกจริง</div></div><button type="button" class="btn light" id="excelImportClose">ปิด</button></div>
+  <div class="grid3 excel-import-controls"><label>ชีต<select id="excelImportSheet"></select></label><label>ช่วงแผน / ภาคเรียน<select id="excelImportBlock"></select></label><label>วิธีนำเข้า<select id="excelImportMode"><option value="merge">เพิ่ม/อัปเดตรหัสเดิม</option><option value="replace">แทนที่รายวิชาในแผนปลายทาง</option></select></label></div>
+  <div id="excelImportTarget" class="notice"></div><div id="excelImportSummary" class="muted"></div>
+  <div class="excel-import-tablewrap"><table class="excel-import-table"><thead><tr><th>สถานะ</th><th>รหัสวิชา</th><th>ชื่อวิชา</th><th>ท</th><th>ป</th><th>นก.</th><th>ชม.</th></tr></thead><tbody id="excelImportPreview"></tbody></table></div>
+  <div class="actions"><button type="button" class="btn primary" id="excelImportConfirm">ยืนยันนำเข้า</button><button type="button" class="btn light" id="excelImportCancel">ยกเลิก</button></div></div>`;
+  document.body.appendChild(modal);
+  btn.onclick=()=>input.click(); input.onchange=readExcelFile;
+  document.getElementById('excelImportClose').onclick=closeImport; document.getElementById('excelImportCancel').onclick=closeImport;
+  document.getElementById('excelImportSheet').onchange=refreshBlocks; document.getElementById('excelImportBlock').onchange=refreshImportPreview;
+  document.getElementById('excelImportConfirm').onclick=commitImport;
+}
+function closeImport(){document.getElementById('excelImportModal')?.classList.add('hide')}
+async function readExcelFile(ev){
+ try{
+  const file=ev.target.files?.[0]; if(!file)return;
+  if(typeof XLSX==='undefined') throw new Error('ไม่พบตัวอ่าน Excel กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วเปิดหน้าเว็บใหม่');
+  const ab=await file.arrayBuffer(); importBook=XLSX.read(ab,{type:'array',cellDates:false});
+  const sel=document.getElementById('excelImportSheet'); sel.innerHTML='';
+  importBook.SheetNames.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o)});
+  const preferred=importBook.SheetNames.find(n=>/ปวช|ปวส/.test(n)); if(preferred)sel.value=preferred;
+  document.getElementById('excelImportModal').classList.remove('hide'); refreshBlocks();
+ }catch(e){alert('อ่านไฟล์ Excel ไม่สำเร็จ: '+(e?.message||e))} finally {ev.target.value=''}
+}
+function sheetMatrix(name){return XLSX.utils.sheet_to_json(importBook.Sheets[name],{header:1,defval:null,raw:true})}
+function detectLevel(sheetName,rows){const text=(sheetName+' '+rows.slice(0,8).flat().filter(Boolean).join(' '));return /ปวส/.test(text)?'ปวส.':'ปวช.'}
+function detectBlocks(rows,sheetName){
+ const level=detectLevel(sheetName,rows), out=[];
+ for(let r=0;r<Math.min(rows.length,15);r++) for(let c=0;c<(rows[r]?.length||0);c++){
+   const v=clean(rows[r][c]); if(!/ภาคเรียน/.test(v))continue;
+   const m=v.match(/ภาคเรียน(?:ที่)?\s*(\d+)/); const summer=/ฤดูร้อน/.test(v);
+   if(!m&&!summer)continue;
+   const ordinal=m?Number(m[1]):null;
+   let year=1,semester='1';
+   if(summer){year=level==='ปวส.'?2:3;semester='summer'}
+   else {year=Math.ceil(ordinal/2);semester=ordinal%2?'1':'2'}
+   let academicYear='';
+   for(let rr=Math.max(0,r-3);rr<=r;rr++){
+     const around=(rows[rr]||[]).slice(Math.max(0,c-1),Math.min((rows[rr]||[]).length,c+6)).map(clean).join(' ');
+     const ym=around.match(/25\d{2}/); if(ym){academicYear=ym[0];break}
+   }
+   if(!academicYear){const base=String(plan?.()?.academicYear||'2569');academicYear=String(Number(base)+(year-Number(plan?.()?.year||year)))}
+   out.push({row:r,col:c,label:v,level,year:String(year),semester,academicYear});
+ }
+ // keep distinct starts only
+ return out.filter((b,i,a)=>a.findIndex(x=>x.col===b.col&&x.row===b.row)===i).sort((a,b)=>a.col-b.col);
+}
+function refreshBlocks(){
+ if(!importBook)return; const sn=document.getElementById('excelImportSheet').value, rows=sheetMatrix(sn), blocks=detectBlocks(rows,sn), sel=document.getElementById('excelImportBlock');
+ sel.innerHTML=''; blocks.forEach((b,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${b.label} → ${b.level} ปี ${b.year} ${b.semester==='summer'?'ภาคฤดูร้อน':'ภาค '+b.semester}`;o._block=b;sel.appendChild(o)});
+ sel._blocks=blocks; refreshImportPreview();
+}
+function parseBlock(rows,b,nextCol){
+ const end=Math.min(nextCol??(b.col+5),b.col+5), result=[]; let current=null;
+ for(let r=b.row+1;r<rows.length;r++){
+   const code=clean(rows[r]?.[b.col]);
+   if(CODE_RE.test(code)){
+     if(current)result.push(current);
+     current={code,name:clean(rows[r]?.[b.col+1]),t:num(rows[r]?.[b.col+2]),p:num(rows[r]?.[b.col+3]),n:num(rows[r]?.[b.col+4]),sourceRow:r+1};
+     continue;
+   }
+   if(!current)continue;
+   // Stop only when a later course begins; continuation rows can contain name and/or T/P/N.
+   const namePart=clean(rows[r]?.[b.col+1]);
+   if(namePart && !/^(รหัสวิชา|รายวิชา|ท|ป|นก\.?|รวม)$/i.test(namePart) && !/^\d+\./.test(namePart)) current.name=clean(current.name+' '+namePart);
+   if(current.t==null){const x=num(rows[r]?.[b.col+2]);if(x!=null)current.t=x}
+   if(current.p==null){const x=num(rows[r]?.[b.col+3]);if(x!=null)current.p=x}
+   if(current.n==null){const x=num(rows[r]?.[b.col+4]);if(x!=null)current.n=x}
+ }
+ if(current)result.push(current);
+ return result.map(x=>({...x,t:x.t??0,p:x.p??0,n:x.n??0,hours:(x.t??0)+(x.p??0),ok:!!x.name&&((x.t??0)+(x.p??0)>0)}));
+}
+function refreshImportPreview(){
+ if(!importBook)return; const sn=document.getElementById('excelImportSheet').value, rows=sheetMatrix(sn), sel=document.getElementById('excelImportBlock'), blocks=sel._blocks||[]; const b=blocks[Number(sel.value)||0]; if(!b)return;
+ const next=blocks.find(x=>x.col>b.col)?.col; importRows=parseBlock(rows,b,next);
+ const target=document.getElementById('excelImportTarget'); target.dataset.level=b.level;target.dataset.year=b.year;target.dataset.semester=b.semester;target.dataset.academicYear=b.academicYear;
+ target.innerHTML=`ปลายทาง: <b>${b.level} ปี ${b.year}</b> • ${b.semester==='summer'?'ภาคฤดูร้อน':'ภาคเรียนที่ '+b.semester} • ปีการศึกษา <b>${b.academicYear}</b> <span class="muted">(ถ้ายังไม่มีแผน ระบบจะสร้างให้)</span>`;
+ const body=document.getElementById('excelImportPreview'); body.innerHTML=''; let ok=0,bad=0,h=0;
+ importRows.forEach(x=>{x.ok?ok++:bad++;h+=x.ok?x.hours:0;const tr=document.createElement('tr');if(!x.ok)tr.className='excel-import-warn';tr.innerHTML=`<td>${x.ok?'พร้อม':'ตรวจสอบ'}</td><td>${esc(x.code)}</td><td>${esc(x.name||'—')}</td><td>${x.t}</td><td>${x.p}</td><td>${x.n}</td><td>${x.hours}</td>`;body.appendChild(tr)});
+ document.getElementById('excelImportSummary').innerHTML=`พบ <b>${importRows.length}</b> รายวิชา • พร้อมนำเข้า <b>${ok}</b> • ต้องตรวจสอบ <b>${bad}</b> • ชั่วโมงรวม <b>${h}</b> ชม.`;
+}
+function findOrCreatePlan(level,year,semester,academicYear){
+ let p=state.plans.find(x=>normalizeLevel(x.level)===normalizeLevel(level)&&String(x.year)===String(year)&&String(x.semester)===String(semester)&&String(x.academicYear)===String(academicYear));
+ if(!p){p={id:uid(),level:normalizeLevel(level),year:String(year),semester:String(semester),academicYear:String(academicYear)};p.term=termLabel(p.semester,p.academicYear);p.name=`${p.level} ปี ${p.year} • ${p.term}`;state.plans.push(p)} return p;
+}
+function commitImport(){
+ try{
+  const good=importRows.filter(x=>x.ok); if(!good.length)return alert('ยังไม่มีรายวิชาที่พร้อมนำเข้า');
+  const t=document.getElementById('excelImportTarget').dataset; const p=findOrCreatePlan(t.level,t.year,t.semester,t.academicYear); const mode=document.getElementById('excelImportMode').value;
+  if(mode==='replace') state.subjects=state.subjects.filter(s=>s.planId!==p.id);
+  let added=0,updated=0;
+  good.forEach(x=>{let s=state.subjects.find(z=>z.planId===p.id&&clean(z.code)===x.code);if(s){s.name=x.name;s.t=x.t;s.p=x.p;s.n=x.n;updated++}else{state.subjects.push({id:uid(),planId:p.id,code:x.code,name:x.name,t:x.t,p:x.p,n:x.n,teacherId:'',roomId:''});added++}});
+  state.activePlanId=p.id; const gs=groupsForPlan(p); if(gs.length)state.currentGroupId=gs[0].id;
+  if(typeof save==='function')save(); if(typeof renderAll==='function')renderAll(); if(typeof refreshPlanUI==='function')refreshPlanUI();
+  closeImport(); alert(`นำเข้าแผนสำเร็จ\nเพิ่ม ${added} วิชา\nอัปเดต ${updated} วิชา\nแผน: ${p.name}`);
+ }catch(e){alert('นำเข้าไม่สำเร็จ: '+(e?.message||e))}
+}
+const boot=()=>{ensureImportUI()}; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+</script>
