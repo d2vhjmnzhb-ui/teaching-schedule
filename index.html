@@ -239,6 +239,7 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <button data-page="schedulePage">3. จัดตารางนักเรียน</button>
 <button data-page="teacherPage">4. ตารางครู</button>
 <button data-page="printPage">5. ตัวอย่าง / พิมพ์</button>
+<button data-page="bookPage">6. หนังสือเรียนฟรี</button>
 </nav>
 <main>
 
@@ -249,7 +250,7 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <div class="module disabled"><h3>งานประกันคุณภาพ</h3><p>SAR, PDCA, ตัวชี้วัด และหลักฐาน</p><button class="btn light" disabled>เตรียมไว้สำหรับเพิ่มภายหลัง</button></div>
 <div class="module disabled"><h3>งานแผนงาน / โครงการ</h3><p>โครงการ งบประมาณ ผู้รับผิดชอบ และสถานะ</p><button class="btn light" disabled>เตรียมไว้สำหรับเพิ่มภายหลัง</button></div>
 <div class="module disabled"><h3>งานห้องเรียน / ห้องปฏิบัติการ</h3><p>ตารางใช้ห้องและการจองห้อง</p><button class="btn light" disabled>เตรียมไว้สำหรับเพิ่มภายหลัง</button></div>
-<div class="module disabled"><h3>งานรายงาน / เอกสาร</h3><p>แบบฟอร์ม รายงาน และเอกสารของวิทยาลัย</p><button class="btn light" disabled>เตรียมไว้สำหรับเพิ่มภายหลัง</button></div>
+<div class="module"><h3>งานหนังสือเรียนฟรี</h3><p>จัดการรายการหนังสือจากแผนการเรียน รวมหนังสือสามัญ เปลี่ยนเล่ม และเตรียม สมอ.1–4</p><button class="btn primary" onclick="goPage('bookPage')">เปิดงานหนังสือเรียนฟรี</button></div>
 <div class="module disabled"><h3>งานอื่น ๆ</h3><p>พื้นที่สำหรับเพิ่มโมดูลใหม่โดยไม่ต้องสร้างเว็บใหม่</p><button class="btn light" disabled>เพิ่มได้ในอนาคต</button></div>
 </div></section>
 <section id="planPage" class="page">
@@ -295,6 +296,15 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <div class="card tablewrap" id="teacherTable"></div>
 </section>
 
+
+<section id="bookPage" class="page">
+<div class="card"><h2>งานหนังสือเรียนฟรี</h2><p class="muted">ใช้รายวิชาจากแผนการเรียนเป็นฐาน • เพิ่มรายการจากแผนกสามัญภายหลังได้ • เปลี่ยนหนังสือได้โดยไม่แก้แผนการเรียน</p>
+<div class="grid3"><label>ปีการศึกษา<input id="bkYear" value="2569"></label><label>ภาคเรียน<select id="bkSem"><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option></select></label><label>ระดับ/ชั้น<select id="bkPlan"></select></label></div>
+<div class="actions"><button class="btn primary" id="bkSync">ดึงรายวิชาจากแผนการเรียน</button><button class="btn light" id="bkAdd">+ เพิ่มหนังสือ/วิชาสามัญ</button><button class="btn light" id="bkImport">นำเข้ารายการจากไฟล์</button><input type="file" id="bkFile" accept=".xlsx,.xls" hidden></div>
+<div id="bkStatus" class="notice">พร้อมจัดการรายการหนังสือ</div></div>
+<div class="card"><h2>รายการหนังสือ</h2><div style="overflow:auto"><table><thead><tr><th>รหัสวิชา</th><th>ชื่อวิชา/หนังสือ</th><th>ผู้แต่ง</th><th>สำนักพิมพ์</th><th>ราคา</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="bkRows"></tbody></table></div></div>
+<div class="card"><h2>แบบฟอร์มต้นฉบับ</h2><p class="muted">เก็บไฟล์ Word ปี 2568 ไว้เป็นต้นฉบับอ้างอิง เพื่อไม่ให้รูปแบบราชการถูกสร้างใหม่หรือเปลี่ยนเอง</p><div class="actions"><a class="btn light" href="template-freebook.docx">บันทึกข้อความ หนังสือเรียนฟรี</a><a class="btn light" href="template-smo-ch1.docx">สมอ. ปวช.1</a><a class="btn light" href="template-smo-ch2.docx">สมอ. ปวช.2</a><a class="btn light" href="template-smo-ch3.docx">สมอ. ปวช.3</a></div><div class="notice warn">การส่งออกฉบับกรอกข้อมูลจะใช้ Word ต้นฉบับเป็นแม่แบบ ไม่สร้างหน้าเอกสารใหม่ เพื่อรักษาตาราง ระยะขอบ ฟอนต์ ลายเซ็น และการแบ่งหน้า</div></div>
+</section>
 <section id="printPage" class="page">
 <div class="card no-print"><h2>ตัวอย่างเอกสาร</h2><div class="actions"><button class="btn primary" id="studentPreviewBtn">ตารางนักเรียน</button><button class="btn light" id="teacherPreviewBtn">ตารางครู</button><span class="print-teacher-picker"><label>ครูสำหรับ PDF <select id="printTeacherView"></select></label></span><button class="btn ok" onclick="window.print()">พิมพ์ / บันทึก PDF</button><button class="btn light" id="exportExcelBtn">ส่งออก Excel (.xlsx)</button></div></div>
 <div class="card tablewrap"><div id="preview" class="preview"></div></div>
@@ -1004,6 +1014,29 @@ window.addEventListener('load',()=>{
  setTimeout(()=>{refreshTruthUI();say('v43 พร้อมใช้งาน • การนับชั่วโมงยึดเฉพาะห้องที่เลือก')},0);
 })();
 </script>
+
+<style>
+#bookPage table{width:100%;border-collapse:collapse}#bookPage th,#bookPage td{border:1px solid var(--line);padding:8px;vertical-align:top}#bookPage th{background:#f3f7fb}.bk-ok{color:#15803d;font-weight:700}.bk-wait{color:#b45309;font-weight:700}.bk-out{color:#c62828;font-weight:700}
+</style>
+<script>
+(()=>{
+const KEY='college_free_books_v1';
+const old=[
+['20000-1102','ภาษาไทยเพื่ออาชีพ','อมรรัตน์ ฉายศรี','ศูนย์หนังสือเมืองไทย',90],['20000-1203','การฟังและพูดภาษาอังกฤษ','พิมพ์ใจ สายวิภู','ศูนย์หนังสือเมืองไทย',90],['20000-1403','คณิตศาสตร์ไฟฟ้าและอิเล็กทรอนิกส์','วราภรณ์ วงศ์ไตรรัตน์','ศูนย์หนังสือเมืองไทย',109],['20000-1502','ประวัติศาสตร์ชาติไทย','พิสิฐพงศ์ สีดาว','ศูนย์หนังสือเมืองไทย',99],['20001-1001','สุขภาพความปลอดภัยและสิ่งแวดล้อม','ดร.ทัชพงษ์ จันทร์ลี','ศูนย์หนังสือเมืองไทย',119],['20100-1003','งานฝึกฝีมือ','อ.ชลอ การทวี','สำนักพิมพ์เอมพันธ์',105],['20100-1006','งานเครื่องมือกลเบื้องต้น','อ.ชลอ การทวี','สำนักพิมพ์เอมพันธ์',83],['20104-2003','วงจรไฟฟ้ากระแสสลับ','สมศักดิ์ แก้วพันธ์','สำนักพิมพ์เอมพันธ์',119],['20104-2012','การติดตั้งไฟฟ้านอกอาคาร','อ.คม แรงสูงเนิน','ศูนย์หนังสือเมืองไทย',110],['20104-2013','หม้อแปลงไฟฟ้า','อ.สว่าง จันทร์ขาว','สำนักพิมพ์เอมพันธ์',99],['20104-2023','การส่องสว่าง','อ.ณัฐธีร์ ธีธนาวิโรจน์','สำนักพิมพ์เอมพันธ์',67],['20100-1007','งานนิวแมติกส์และไฮดรอลิกส์เบื้องต้น','อ.กิตติพันธ์ ไทยสงค์','สำนักพิมพ์เอมพันธ์',125],['20104-2010','การประมาณการติดตั้งไฟฟ้า','อ.ธำรงศักดิ์ หมินก้าหรีม','ศูนย์หนังสือเมืองไทย',120],['20104-2014','เครื่องกำเนิดไฟฟ้ากระแสสลับ','อ.สุธน แก่นต้น','ศูนย์หนังสือเมืองไทย',110],['20104-2015','เครื่องปรับอากาศ','เฉลิมรัตน์ ชมภูประเภท','ศูนย์หนังสือเมืองไทย',120],['20104-2027','คณิตศาสตร์ไฟฟ้า','ธำรงศักดิ์ หมื่นก้าหรีม','สำนักพิมพ์เอมพันธ์',109],['20104-2017','กฎและมาตรฐานทางไฟฟ้า','อ.สุขสันต์ หวังสถิตวงษ์','ศูนย์ส่งเสริมวิชาการ',114],['20104-2020','ดิจิทัลเบื้องต้น','สุชิน ชินสีห์','ศูนย์หนังสือเมืองไทย',100]
+];
+let db=[];try{db=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){};if(!db.length)db=old.map(x=>({id:'bk'+Math.random().toString(36).slice(2),code:x[0],title:x[1],author:x[2],publisher:x[3],price:x[4],status:'ใช้',source:'2568'}));
+const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
+function plans(){return (window.state?.plans||[])}
+function init(){const sel=document.getElementById('bkPlan');if(!sel)return;sel.innerHTML=plans().map(p=>`<option value="${p.id}">${p.level} ปี ${p.year} • ${p.term||p.semester}</option>`).join('');render()}
+function subjects(){let pid=document.getElementById('bkPlan')?.value;return (window.state?.subjects||[]).filter(s=>s.planId===pid)}
+function render(){let body=document.getElementById('bkRows');if(!body)return;let ss=subjects(), rows=ss.length?ss.map(s=>{let b=db.find(x=>x.code===s.code&&x.status!=='เลิกใช้');return {s,b}}):db.map(b=>({s:{code:b.code,name:b.title},b}));body.innerHTML=rows.map(({s,b})=>`<tr><td>${s.code||''}</td><td><b>${s.name||b?.title||''}</b>${b&&b.title!==s.name?`<div class="muted">หนังสือ: ${b.title}</div>`:''}</td><td>${b?.author||'—'}</td><td>${b?.publisher||'—'}</td><td>${b?.price??'—'}</td><td class="${!b?'bk-wait':b.status==='หมด'?'bk-out':'bk-ok'}">${!b?'รอเลือกหนังสือ':b.status}</td><td><button class="btn light" onclick="window.editBook('${s.code||b.code}')">${b?'แก้ไข/เปลี่ยน':'เพิ่มหนังสือ'}</button></td></tr>`).join('');document.getElementById('bkStatus').textContent=`${ss.length?`แผนนี้มี ${ss.length} วิชา • `:''}ฐานหนังสือ ${db.length} รายการ`}
+window.editBook=(code)=>{let b=db.find(x=>x.code===code&&x.status!=='เลิกใช้');let title=prompt('ชื่อหนังสือ',b?.title||subjects().find(s=>s.code===code)?.name||'');if(title===null)return;let author=prompt('ผู้แต่ง',b?.author||'')??'';let publisher=prompt('สำนักพิมพ์/บริษัท',b?.publisher||'')??'';let price=prompt('ราคา',b?.price??'')??'';let status=prompt('สถานะ: ใช้ / สำรอง / หมด / เลิกใช้',b?.status||'ใช้')||'ใช้';if(b)Object.assign(b,{title,author,publisher,price:Number(price)||0,status});else db.push({id:'bk'+Date.now(),code,title,author,publisher,price:Number(price)||0,status,source:'manual'});save();render()}
+document.getElementById('bkSync')?.addEventListener('click',render);document.getElementById('bkAdd')?.addEventListener('click',()=>window.editBook(prompt('รหัสวิชา')||''));document.getElementById('bkImport')?.addEventListener('click',()=>document.getElementById('bkFile').click());document.getElementById('bkPlan')?.addEventListener('change',render);
+document.getElementById('bkFile')?.addEventListener('change',e=>{let f=e.target.files[0];if(!f)return;alert('รับไฟล์ '+f.name+' แล้ว\nตัวนำเข้ารายการสามัญจะจับคู่ รหัสวิชา / ชื่อหนังสือ / ผู้แต่ง / สำนักพิมพ์ / ราคา เมื่อได้รับรูปแบบไฟล์จริงจากแผนกสามัญ');e.target.value=''});
+setTimeout(init,300);document.querySelector('[data-page="bookPage"]')?.addEventListener('click',()=>setTimeout(init,0));
+})();
+</script>
+
 </body></html>
 <!-- v19 student-first scheduling refinements -->
 <style>
