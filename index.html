@@ -1080,29 +1080,119 @@ function normalizeDocDigits(doc){for(const t of [...doc.getElementsByTagNameNS('
 function refreshSubjectNames(doc){const ss=currentSubjects();for(const p of [...doc.getElementsByTagNameNS('*','p')]){const ts=[...p.getElementsByTagNameNS('*','t')];if(!ts.length)continue;const full=ts.map(t=>t.textContent||'').join('');const s=ss.find(x=>x.code&&full.includes(x.code));if(!s)continue;let out=full;const idx=out.indexOf(s.code)+s.code.length;const tail=out.slice(idx);if(/ชื่อวิชา|วิชา/.test(out)||tail.trim()){out=out.slice(0,idx)+tail.replace(/([\s:：-]*)([^\n]{2,})$/,(_,a)=>a+(s.name||_.trim()))}if(out!==full){ts[0].textContent=out;for(let i=1;i<ts.length;i++)ts[i].textContent=''}}}
 function fillMemo(doc,rows){const tables=[...doc.getElementsByTagNameNS('*','tbl')].filter(t=>{const h=tableHead(t,1);return h.includes('รหัส')&&h.includes('สำนักพิมพ์')&&h.includes('ราคา')});const t=tables[classNo()-1]||tables[0];if(!t)return;fillRows(t,1,rows,(cs,x,i)=>{[i+1,x.s.code,x.s.name||x.b.title,x.b.author,x.b.publisher,x.b.price].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},6)}
 function fillSmo1(doc){const tables=[...doc.getElementsByTagNameNS('*','tbl')];for(const t of tables){const h=tableHead(t,2);if(!(h.includes('ข้อมูลการอนุญาต')&&h.includes('เหตุผลที่เลือก')))continue;const pre=precedingText(t,8),m=pre.match(/\d{5}-\d{4}/),code=m?.[0];if(!code)continue;const s=currentSubjects().find(x=>x.code===code);if(!s)continue;const opts=optionsFor(code).slice(0,3);fillRows(t,2,opts,(cs,b,i)=>{const vals=[i+1,b.approvalNo||'',b.approvalYear||'',b.author,b.publisher,b.paper||'/',b.eyePaper||'',b.artPaper||'',b.color1||'',b.color2||'',b.color4===false?'':'/',b.size8===false?'':'/',b.sizeA4||'',b.otherSize||'',b.price,i===0?'อันดับ 1':'อันดับ '+(i+1)];vals.forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},16)}}
-function fillSmo2(doc,rows){for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){const h=tableHead(t,2);if(h.includes('ชื่อวิชา')&&h.includes('ชื่อครูผู้สอน')&&h.includes('เห็นชอบ')){fillRows(t,2,rows,(cs,x,i)=>{const teacher=subjectTeacherName(x.s);[i+1,x.s.name||x.b.title,x.b.author,x.b.publisher,x.b.price,teacher].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},6);break}}}
-function fillSmo3(doc,rows){const pubs=[...new Set(rows.map(x=>x.b.publisher).filter(Boolean))];const tables=[...doc.getElementsByTagNameNS('*','tbl')].filter(t=>{const h=tableHead(t,3);return h.includes('ชื่อหนังสือ')&&h.includes('ผลการตรวจรับหนังสือเรียน')});tables.forEach((t,idx)=>{const pub=pubs[idx]||'';const rr=rows.filter(x=>x.b.publisher===pub);let n=t.previousSibling,steps=0;while(n&&steps<8){if(n.nodeType===1&&n.localName==='p'&&/สำนักพิมพ์/.test(n.textContent)){const ts=[...n.getElementsByTagNameNS('*','t')];if(ts.length){ts[0].textContent=pub?'สำนักพิมพ์'+pub.replace(/^สำนักพิมพ์/,''):'';for(let k=1;k<ts.length;k++)ts[k].textContent=''}break}n=n.previousSibling;steps++}fillRows(t,3,rr,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.paper||'/',x.b.eyePaper||'',x.b.artPaper||'',x.b.color1||'',x.b.color2||'',x.b.color4===false?'':'/',x.b.size8===false?'':'/',x.b.sizeA4||'',x.b.otherSize||'',x.b.price,'',''].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},15)})}
-function fillSmo4(doc,rows){for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){const h=tableHead(t,2);if(h.includes('จุดประสงค์รายวิชา')&&h.includes('สมรรถนะรายวิชา')){fillRows(t,2,rows,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.publisher,x.b.price].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},5);break}}}
+function fillSmo2(doc,rows){
+  // v66: สมอ.2 ผูกครูตามรหัสวิชา/แถวจากฐานเดียวกับ สมอ.1 เสมอ
+  for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){
+    const h=tableHead(t,2);if(!(h.includes('ชื่อวิชา')&&h.includes('ชื่อครูผู้สอน')&&h.includes('เห็นชอบ')))continue;
+    fillRows(t,2,rows,(cs,x,i)=>{
+      const teacher=subjectTeacherName(x.s)||'';
+      [i+1,x.s.name||x.b.title,x.b.author,x.b.publisher,x.b.price,teacher].forEach((v,j)=>cs[j]&&setCellText(cs[j],v));
+    },6);break;
+  }
+}
+function setPublisherLineKeepDots(p,pub){
+  const txt=p.textContent||''; if(!/สำนักพิมพ์/.test(txt))return false;
+  const clean=String(pub||'').replace(/^สำนักพิมพ์\s*/,'').trim();
+  let out=txt;
+  // รักษาจุดไข่ปลาและระยะเดิมของแบบฟอร์ม เปลี่ยนเฉพาะชื่อที่อยู่กลางเส้นประ
+  const m=txt.match(/^(.*?สำนักพิมพ์)([.\s]*)(.*?)([.\s]+)$/);
+  if(m) out=m[1]+m[2]+clean+m[4];
+  else out=txt.replace(/(สำนักพิมพ์\s*[.]*\s*)([^.\n]*)([.]+.*$)/,(_,a,_b,c)=>a+clean+c);
+  return setParagraphTextKeepStyle(p,out);
+}
+function fillSmo3(doc,rows){
+  // สมอ.3 ไม่มีช่องครูผู้สอน: จัดกลุ่มตามสำนักพิมพ์ของ "เล่มที่เลือก" เท่านั้น
+  const pubs=[...new Set(rows.map(x=>x.b.publisher).filter(Boolean))];
+  const tables=[...doc.getElementsByTagNameNS('*','tbl')].filter(t=>{const h=tableHead(t,3);return h.includes('ชื่อหนังสือ')&&h.includes('ผลการตรวจรับหนังสือเรียน')});
+  tables.forEach((t,idx)=>{const pub=pubs[idx]||'',rr=rows.filter(x=>x.b.publisher===pub);let n=t.previousSibling,steps=0;
+    while(n&&steps<10){if(n.nodeType===1&&n.localName==='p'&&/สำนักพิมพ์/.test(n.textContent)){setPublisherLineKeepDots(n,pub);break}n=n.previousSibling;steps++}
+    fillRows(t,3,rr,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.paper||'/',x.b.eyePaper||'',x.b.artPaper||'',x.b.color1||'',x.b.color2||'',x.b.color4===false?'':'/',x.b.size8===false?'':'/',x.b.sizeA4||'',x.b.otherSize||'',x.b.price,'',''].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},15)
+  })
+}
+function fillSmo4TeacherSignatures(doc,rows){
+  // สมอ.4: รายชื่อในวงเล็บตำแหน่งครูผู้สอน ใช้ครูจริงของวิชาที่อยู่ในเอกสาร
+  const names=[]; for(const x of rows){const n=subjectTeacherName(x.s);if(n&&!names.includes(n))names.push(n)}
+  if(!names.length)return;
+  const ps=[...doc.getElementsByTagNameNS('*','p')];let start=ps.findIndex(p=>(p.textContent||'').replace(/\s+/g,'').includes('แบบฟอร์มสมอ.4'));if(start<0)return;
+  for(let i=start;i<ps.length;i++){
+    const txt=ps[i].textContent||'';
+    const matches=[...txt.matchAll(/\(([^()]*)\)/g)];
+    if(matches.length>=2 && i+1<ps.length && /ครูผู้สอน/.test(ps[i+1].textContent||'')){
+      let k=0;const out=txt.replace(/\(([^()]*)\)/g,m=>k<names.length?'('+names[k++]+')':m);
+      setParagraphTextKeepStyle(ps[i],out);break;
+    }
+  }
+}
+function fillSmo4(doc,rows){for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){const h=tableHead(t,2);if(h.includes('จุดประสงค์รายวิชา')&&h.includes('สมรรถนะรายวิชา')){fillRows(t,2,rows,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.publisher,x.b.price].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},5);break}}fillSmo4TeacherSignatures(doc,rows)}
 function setParagraphTextKeepStyle(p,text){const ts=[...p.getElementsByTagNameNS('*','t')];if(!ts.length)return false;ts[0].textContent=String(text??'');for(let i=1;i<ts.length;i++)ts[i].textContent='';return true}
 function replaceAllTeacherNames(doc){
- // v62: Word ต้นฉบับแยกบรรทัดรหัสวิชาและบรรทัดครูผู้สอนออกจากกัน
- // จึงเดินเอกสารตามลำดับและจำรหัสวิชาล่าสุด แล้วใช้ override ของปี/ภาค/แผนเดียวกัน
- const ss=currentSubjects(), byCode=new Map(ss.map(s=>[String(s.code||''),s]));
- let current=null;
- for(const p of [...doc.getElementsByTagNameNS('*','p')]){
-  const txt=p.textContent||'';
-  const cm=txt.match(/\d{5}-\d{4}/);
-  if(cm&&byCode.has(cm[0])) current=byCode.get(cm[0]);
-  if(!current||!/ครูผู้สอน/.test(txt))continue;
-  const nm=subjectTeacherName(current); if(!nm)continue;
-  const pos=txt.indexOf('ครูผู้สอน'); if(pos<0)continue;
-  const before=txt.slice(0,pos)+'ครูผู้สอน';
-  const after=txt.slice(pos+'ครูผู้สอน'.length);
-  // รักษาจุดไข่ปลา/ช่องว่างหัว-ท้ายของช่องเดิม แต่แทนค่าชื่อทั้งหมดในช่อง
-  const lead=(after.match(/^[.\s:：]*/)||[''])[0];
-  const trail=(after.match(/[.\s]*$/)||[''])[0];
-  setParagraphTextKeepStyle(p,before+lead+nm+trail);
- }
+  // v65: เปลี่ยนครูตาม "ตำแหน่งครูผู้สอนของแต่ละหน้า สมอ.1" ไม่ผูกกับชื่อบุคคลเดิม
+  // แต่ละหน้าใช้รหัสวิชาในหน้านั้นเป็นตัวระบุ แล้วแทนทั้งชื่อด้านบนและวงเล็บซ้ายแรกใต้ลายเซ็น
+  const byCode=new Map(currentSubjects().map(s=>[String(s.code||'').trim(),s]));
+  const ps=[...doc.getElementsByTagNameNS('*','p')];
+  let sectionStart=-1;
+  function applySection(a,b){
+    if(a<0||b<=a)return;
+    let subj=null, teacher='';
+    // หารหัสวิชาเฉพาะภายในหน้า/ช่วง สมอ.1 นี้
+    for(let i=a;i<b;i++){
+      const txt=ps[i].textContent||'';
+      const m=txt.match(/\b\d{5}-\d{4}\b/);
+      if(m&&byCode.has(m[0])){subj=byCode.get(m[0]);break;}
+    }
+    if(!subj)return;
+    teacher=subjectTeacherName(subj);
+    if(!teacher)return;
+
+    // 1) บรรทัดข้อมูลด้านบน "ครูผู้สอน........ชื่อเดิม........"
+    for(let i=a;i<b;i++){
+      const txt=ps[i].textContent||'';
+      if(!/ครูผู้สอน/.test(txt)||/ลงชื่อ/.test(txt))continue;
+      let out=txt;
+      // รองรับทั้งจุดติดชื่อ จุดมีช่องว่าง และชื่อเดิมรูปแบบใด ๆ
+      const re=/(ครูผู้สอน\s*[.]{2,}\s*)(.*?)(\s*[.]{2,})(\s*)$/;
+      if(re.test(out)) out=out.replace(re,(_,x,_old,z,q)=>x+teacher+z+q);
+      else {
+        // fallback: เปลี่ยนข้อความหลังคำว่าครูผู้สอน โดยไม่แตะส่วนก่อนหน้า
+        const pos=out.indexOf('ครูผู้สอน');
+        const prefix=out.slice(0,pos+'ครูผู้สอน'.length);
+        const tail=out.slice(pos+'ครูผู้สอน'.length);
+        const lead=(tail.match(/^\s*[.]*\s*/)||[''])[0];
+        const trail=(tail.match(/\s*[.]+\s*$/)||[''])[0];
+        out=prefix+lead+teacher+trail;
+      }
+      setParagraphTextKeepStyle(ps[i],out);
+      break;
+    }
+
+    // 2) วงเล็บซ้ายแรกใต้บรรทัด "ลงชื่อ...ครูผู้สอน" ของหน้าเดียวกัน
+    let sig=-1;
+    for(let i=a;i<b;i++){
+      const txt=ps[i].textContent||'';
+      if(/ลงชื่อ/.test(txt)&&/ครูผู้สอน/.test(txt)){sig=i;break;}
+    }
+    if(sig>=0){
+      for(let i=sig+1;i<Math.min(b,sig+5);i++){
+        const txt=ps[i].textContent||'';
+        const m=txt.match(/\(([^()]*)\)/);
+        if(!m)continue;
+        setParagraphTextKeepStyle(ps[i],txt.slice(0,m.index)+'('+teacher+')'+txt.slice(m.index+m[0].length));
+        break;
+      }
+    }
+  }
+
+  // แบ่งเอกสารตามหัว "แบบฟอร์ม สมอ.1" เพื่อไม่ให้ชื่อครูของวิชาหนึ่งไหลไปทับอีกวิชา
+  for(let i=0;i<ps.length;i++){
+    const compact=(ps[i].textContent||'').replace(/\s+/g,'');
+    if(/แบบฟอร์มสมอ\.?1/.test(compact)){
+      if(sectionStart>=0)applySection(sectionStart,i);
+      sectionStart=i;
+    } else if(sectionStart>=0 && (/แบบฟอร์มสมอ\.?2/.test(compact)||/แบบฟอร์มสมอ\.?3/.test(compact)||/แบบฟอร์มสมอ\.?4/.test(compact))){
+      applySection(sectionStart,i); sectionStart=-1;
+    }
+  }
+  if(sectionStart>=0)applySection(sectionStart,ps.length);
 }
 function replaceSemesterKeepingForm(doc,sem){
  for(const p of [...doc.getElementsByTagNameNS('*','p')]){
