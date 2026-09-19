@@ -304,9 +304,9 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
 <div class="grid3"><label>ปีการศึกษา<input id="bkYear" value="2569"></label><label>ภาคเรียน<select id="bkSem"><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option></select></label><label>ระดับ/ชั้น<select id="bkPlan"></select></label></div>
 <div class="grid3"><label>วันที่เอกสาร<input id="bkDate" value="29 กันยายน 2569"></label><label>จำนวนนักเรียน<input id="bkStudents" type="number" min="0" value="0"></label><label>หัวหน้าแผนก<input id="bkHead" value="นายสุปกาณฑ์ ไพรนอก"></label></div>
 <div class="actions"><button class="btn primary" id="bkSync">ดึงรายวิชาจากแผนการเรียน</button><button class="btn light" id="bkAdd">+ เพิ่มหนังสือ/วิชาสามัญ</button><button class="btn light" id="bkImport">นำเข้ารายการจากไฟล์</button><input type="file" id="bkFile" accept=".xlsx,.xls" hidden></div>
-<div id="bkStatus" class="notice">พร้อมจัดการรายการหนังสือ</div></div>
+<div id="bkStatus" class="notice">พร้อมจัดการรายการหนังสือ</div><div id="bkScopeStatus" class="notice good">รายการที่เลือกจะผูกกับ ปีการศึกษา + ภาคเรียน + แผนที่เลือก โดยไม่เขียนทับปีเก่า</div></div>
 <div class="card"><h2>รายการหนังสือ</h2><div style="overflow:auto"><table><thead><tr><th>รหัสวิชา</th><th>ชื่อวิชา/หนังสือ</th><th>ผู้แต่ง</th><th>สำนักพิมพ์</th><th>ราคา</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="bkRows"></tbody></table></div></div>
-<div class="card"><h2>ส่งออกเอกสารจากแบบฟอร์มต้นฉบับ</h2><p class="muted">ระบบเติมข้อมูลล่าสุดลงใน Word ต้นฉบับโดยตรง และสามารถตรวจตัวอย่างก่อนดาวน์โหลดได้ • เอกสารที่สร้างใหม่ใช้เลขอารบิก 0–9 ให้เป็นรูปแบบเดียวกัน</p><div class="actions"><button class="btn primary" id="bkPreviewMemo">ดูตัวอย่าง บันทึกข้อความ</button><button class="btn primary" id="bkPreviewSmo">ดูตัวอย่าง สมอ.1–4</button><button class="btn light" id="bkExportMemo">ส่งออก Word บันทึกข้อความ</button><button class="btn light" id="bkExportSmo">ส่งออก Word สมอ.1–4</button><button class="btn light" id="bkExportAll">ส่งออก Word ทั้ง 2 ชุด</button><button class="btn light" id="bkPdfHelp">PDF แบบไม่เพี้ยน</button></div><div id="bkExportStatus" class="notice good">พร้อมสร้างเอกสาร • ทุกครั้งจะอ่านข้อมูลล่าสุดจากรายการหนังสือด้านบน</div><div id="bkDocPreviewWrap" style="display:none;margin-top:14px"><div class="notice good" id="bkPreviewTitle">ตัวอย่าง Word</div><div id="bkDocPreview" style="background:#e5e7eb;padding:14px;overflow:auto;max-height:75vh;border:1px solid #cbd5e1;border-radius:10px"></div></div><details><summary>เปิด Word ต้นฉบับ</summary><div class="actions"><a class="btn light" href="template-freebook.docx">บันทึกข้อความต้นฉบับ</a><a class="btn light" href="template-smo-ch1.docx">สมอ. ปวช.1</a><a class="btn light" href="template-smo-ch2.docx">สมอ. ปวช.2</a><a class="btn light" href="template-smo-ch3.docx">สมอ. ปวช.3</a></div></details><div class="notice warn">PDF ที่ต้องการรูปแบบตรงกับ Word ให้เปิดไฟล์ Word ที่ระบบสร้าง แล้วเลือก Save as PDF / Export PDF จาก Microsoft Word เพื่อใช้ตัวจัดหน้าเดียวกับต้นฉบับ</div></div>
+<div class="card"><h2>ส่งออกเอกสารจากแบบฟอร์มต้นฉบับ</h2><p class="muted">ระบบเติมข้อมูลล่าสุดลงใน Word ต้นฉบับโดยตรง และสามารถตรวจตัวอย่างก่อนดาวน์โหลดได้ • เอกสารที่สร้างใหม่ใช้เลขอารบิก 0–9 ให้เป็นรูปแบบเดียวกัน</p><div class="actions"><button class="btn primary" id="bkPreviewMemo">บันทึกข้อความ</button><button class="btn primary" id="bkPreviewSmo">สมอ.1–4 ทั้งชุด</button><button class="btn light" id="bkTabSmo1">สมอ.1</button><button class="btn light" id="bkTabSmo2">สมอ.2</button><button class="btn light" id="bkTabSmo3">สมอ.3</button><button class="btn light" id="bkTabSmo4">สมอ.4</button><button class="btn light" id="bkExportMemo">ส่งออก Word บันทึกข้อความ</button><button class="btn light" id="bkExportSmo">ส่งออก Word สมอ.1–4</button><button class="btn light" id="bkExportAll">ส่งออก Word ทั้ง 2 ชุด</button><button class="btn light" id="bkPdfHelp">PDF แบบไม่เพี้ยน</button></div><div id="bkExportStatus" class="notice good">พร้อมสร้างเอกสาร • ทุกครั้งจะอ่านข้อมูลล่าสุดจากรายการหนังสือด้านบน</div><div id="bkDocPreviewWrap" style="display:none;margin-top:14px"><div class="notice good" id="bkPreviewTitle">ตัวอย่าง Word</div><div id="bkDocPreview" style="background:#e5e7eb;padding:14px;overflow:auto;max-height:75vh;border:1px solid #cbd5e1;border-radius:10px"></div></div><details><summary>เปิด Word ต้นฉบับ</summary><div class="actions"><a class="btn light" href="template-freebook.docx">บันทึกข้อความต้นฉบับ</a><a class="btn light" href="template-smo-ch1.docx">สมอ. ปวช.1</a><a class="btn light" href="template-smo-ch2.docx">สมอ. ปวช.2</a><a class="btn light" href="template-smo-ch3.docx">สมอ. ปวช.3</a></div></details><div class="notice warn">PDF ที่ต้องการรูปแบบตรงกับ Word ให้เปิดไฟล์ Word ที่ระบบสร้าง แล้วเลือก Save as PDF / Export PDF จาก Microsoft Word เพื่อใช้ตัวจัดหน้าเดียวกับต้นฉบับ</div></div>
 </section>
 <section id="printPage" class="page">
 <div class="card no-print"><h2>ตัวอย่างเอกสาร</h2><div class="actions"><button class="btn primary" id="studentPreviewBtn">ตารางนักเรียน</button><button class="btn light" id="teacherPreviewBtn">ตารางครู</button><span class="print-teacher-picker"><label>ครูสำหรับ PDF <select id="printTeacherView"></select></label></span><button class="btn ok" onclick="window.print()">พิมพ์ / บันทึก PDF</button><button class="btn light" id="exportExcelBtn">ส่งออก Excel (.xlsx)</button></div></div>
@@ -1050,8 +1050,10 @@ function status(msg,bad=false){const e=$('bkExportStatus');if(e){e.className='no
 function activePlan(){return (state?.plans||[]).find(p=>p.id===$('bkPlan')?.value)}
 function currentSubjects(){const pid=$('bkPlan')?.value;return (state?.subjects||[]).filter(s=>s.planId===pid)}
 function bookDB(){try{return JSON.parse(localStorage.getItem('college_free_books_v1')||'[]')}catch(e){return []}}
-function optionsFor(code){return bookDB().filter(x=>x.code===code&&x.status!=='เลิกใช้').sort((a,b)=>(Number(a.priority)||9)-(Number(b.priority)||9))}
-function selectedRows(){return currentSubjects().map(s=>({s,b:optionsFor(s.code).find(x=>x.status==='ใช้')||optionsFor(s.code).find(x=>x.status!=='หมด')||optionsFor(s.code)[0]})).filter(x=>x.b)}
+function scopeKey(code){return [($('bkYear')?.value||activePlan()?.academicYear||''),($('bkSem')?.value||activePlan()?.semester||''),($('bkPlan')?.value||''),code].join('|')}
+function selectionMap(){try{return JSON.parse(localStorage.getItem('college_free_book_selections_v2')||'{}')}catch(e){return {}}}
+function optionsFor(code){const a=bookDB().filter(x=>x.code===code&&x.status!=='เลิกใช้').sort((a,b)=>(Number(a.priority)||9)-(Number(b.priority)||9));const id=selectionMap()[scopeKey(code)];if(id){const i=a.findIndex(x=>x.id===id);if(i>0)a.unshift(...a.splice(i,1))}return a}
+function selectedRows(){const sm=selectionMap();return currentSubjects().map(s=>{const a=optionsFor(s.code),id=sm[scopeKey(s.code)];return {s,b:(id&&a.find(x=>x.id===id))||a.find(x=>x.status==='ใช้')||a.find(x=>x.status!=='หมด')||a[0]}}).filter(x=>x.b)}
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 function setCellText(cell,text){const ts=[...cell.getElementsByTagNameNS('*','t')];if(!ts.length)return;ts[0].textContent=String(text??'');for(let i=1;i<ts.length;i++)ts[i].textContent=''}
 function rowCells(row){return [...row.children].filter(n=>n.localName==='tc')}
@@ -1129,6 +1131,36 @@ window.v54DeleteBook=id=>{let d=getDB(),b=d.find(x=>x.id===id);if(!b||!confirm(`
 window.chooseBook=open;
 $('bkPickerClose')?.addEventListener('click',close);$('bkPickerMask')?.addEventListener('click',e=>{if(e.target===$('bkPickerMask'))close()});
 $('bkNewSave')?.addEventListener('click',()=>{let title=$('bkNewTitle').value.trim();if(!title){alert('กรุณากรอกชื่อหนังสือ');return}let d=getDB();d.forEach(x=>{if(x.code===currentCode&&x.status!=='เลิกใช้')x.status='สำรอง'});d.push({id:'bk'+Date.now(),code:currentCode,title,author:$('bkNewAuthor').value.trim(),publisher:$('bkNewPublisher').value.trim(),price:Number($('bkNewPrice').value)||0,status:'ใช้',priority:1,source:'manual'});putDB(d);['bkNewTitle','bkNewAuthor','bkNewPublisher','bkNewPrice'].forEach(id=>$(id).value='');render();refreshMain()});
+})();
+</script>
+
+
+<style id="v55-year-smo-style">
+.bk-scope-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef6ff;border:1px solid #bfdbfe;font-size:.86em;font-weight:700;color:#1d4ed8}.bk-selected-year{font-size:.82em;color:#475569;margin-top:4px}
+</style>
+<script id="v55-year-smo-binding">
+(()=>{
+const SEL='college_free_book_selections_v2', $=id=>document.getElementById(id);
+function map(){try{return JSON.parse(localStorage.getItem(SEL)||'{}')}catch(e){return {}}}
+function save(m){localStorage.setItem(SEL,JSON.stringify(m))}
+function plan(){return (state?.plans||[]).find(p=>p.id===$('bkPlan')?.value)||{}}
+function key(code){return [($('bkYear')?.value||plan().academicYear||''),($('bkSem')?.value||plan().semester||''),($('bkPlan')?.value||''),code].join('|')}
+function scope(){const p=plan();return `${$('bkSem')?.value||p.semester||'-'}/${$('bkYear')?.value||p.academicYear||'-'} • ${p.level||''} ปี ${p.year||''}`}
+function updateScope(){const e=$('bkScopeStatus');if(e)e.innerHTML=`กำลังทำงานกับ <span class="bk-scope-pill">${scope()}</span> • การเลือกหนังสือชุดนี้แยกจากปี/ภาคเรียนอื่น`}
+// Override picker use: store selected book for current year/term/plan without destroying another year's choice.
+const oldUse=window.v54UseBook;
+window.v54UseBook=id=>{let code='';try{const d=JSON.parse(localStorage.getItem('college_free_books_v1')||'[]');code=d.find(x=>x.id===id)?.code||''}catch(e){};if(code){const m=map();m[key(code)]=id;save(m)};if(oldUse)oldUse(id);updateScope()}
+// Capture "add and select" after v54 handler runs.
+$('bkNewSave')?.addEventListener('click',()=>setTimeout(()=>{try{const d=JSON.parse(localStorage.getItem('college_free_books_v1')||'[]');const code=($('bkPickerSubject')?.textContent||'').match(/\d{5}-\d{4}/)?.[0];if(!code)return;const b=d.filter(x=>x.code===code).sort((a,b)=>String(b.id).localeCompare(String(a.id)))[0];if(b){const m=map();m[key(code)]=b.id;save(m)}}catch(e){}updateScope()},30));
+// When year/semester changes, do not change the plan data; just switch selection scope.
+['bkYear','bkSem','bkPlan'].forEach(id=>$(id)?.addEventListener(id==='bkYear'?'input':'change',()=>{updateScope();setTimeout(()=>$('bkSync')?.click(),30)}));
+// Individual SMO preview tabs: render the same generated original template, then scroll to the requested form marker.
+function previewAndFind(n){$('bkPreviewSmo')?.click();let tries=0;const timer=setInterval(()=>{tries++;const box=$('bkDocPreview');if(!box||tries>30){clearInterval(timer);return}const nodes=[...box.querySelectorAll('*')];const hit=nodes.find(x=>{const t=(x.textContent||'').replace(/\s+/g,'');return t.includes('สมอ.'+n)||t.includes('สมอ'+n)});if(hit){clearInterval(timer);hit.scrollIntoView({behavior:'smooth',block:'start'});$('bkPreviewTitle').textContent=`ตัวอย่าง Word: สมอ.${n} • ${scope()}`}},250)}
+[1,2,3,4].forEach(n=>$('bkTabSmo'+n)?.addEventListener('click',()=>previewAndFind(n)));
+// Mark preview title with selected scope.
+$('bkPreviewMemo')?.addEventListener('click',()=>setTimeout(()=>{if($('bkPreviewTitle'))$('bkPreviewTitle').textContent=`ตัวอย่าง Word: บันทึกข้อความ • ${scope()}`},100));
+$('bkPreviewSmo')?.addEventListener('click',()=>setTimeout(()=>{if($('bkPreviewTitle'))$('bkPreviewTitle').textContent=`ตัวอย่าง Word: สมอ.1–4 • ${scope()}`},100));
+updateScope();
 })();
 </script>
 
