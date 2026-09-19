@@ -1083,28 +1083,34 @@ function fillSmo1(doc){const tables=[...doc.getElementsByTagNameNS('*','tbl')];f
 function fillSmo2(doc,rows){for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){const h=tableHead(t,2);if(h.includes('ชื่อวิชา')&&h.includes('ชื่อครูผู้สอน')&&h.includes('เห็นชอบ')){fillRows(t,2,rows,(cs,x,i)=>{const teacher=subjectTeacherName(x.s);[i+1,x.s.name||x.b.title,x.b.author,x.b.publisher,x.b.price,teacher].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},6);break}}}
 function fillSmo3(doc,rows){const pubs=[...new Set(rows.map(x=>x.b.publisher).filter(Boolean))];const tables=[...doc.getElementsByTagNameNS('*','tbl')].filter(t=>{const h=tableHead(t,3);return h.includes('ชื่อหนังสือ')&&h.includes('ผลการตรวจรับหนังสือเรียน')});tables.forEach((t,idx)=>{const pub=pubs[idx]||'';const rr=rows.filter(x=>x.b.publisher===pub);let n=t.previousSibling,steps=0;while(n&&steps<8){if(n.nodeType===1&&n.localName==='p'&&/สำนักพิมพ์/.test(n.textContent)){const ts=[...n.getElementsByTagNameNS('*','t')];if(ts.length){ts[0].textContent=pub?'สำนักพิมพ์'+pub.replace(/^สำนักพิมพ์/,''):'';for(let k=1;k<ts.length;k++)ts[k].textContent=''}break}n=n.previousSibling;steps++}fillRows(t,3,rr,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.paper||'/',x.b.eyePaper||'',x.b.artPaper||'',x.b.color1||'',x.b.color2||'',x.b.color4===false?'':'/',x.b.size8===false?'':'/',x.b.sizeA4||'',x.b.otherSize||'',x.b.price,'',''].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},15)})}
 function fillSmo4(doc,rows){for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){const h=tableHead(t,2);if(h.includes('จุดประสงค์รายวิชา')&&h.includes('สมรรถนะรายวิชา')){fillRows(t,2,rows,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.publisher,x.b.price].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},5);break}}}
+function setParagraphTextKeepStyle(p,text){const ts=[...p.getElementsByTagNameNS('*','t')];if(!ts.length)return false;ts[0].textContent=String(text??'');for(let i=1;i<ts.length;i++)ts[i].textContent='';return true}
 function replaceAllTeacherNames(doc){
+ // สมอ.1: ผูกครูกับ "รหัสวิชา" ในบรรทัดเดียวกันโดยตรง เพื่อไม่ให้ชื่อครูหลุดไปวิชาอื่น
  const ss=currentSubjects();
- const known=['นายสุริชัย แก้วเอก','นายชัชวาล รักษาทรัพย์','นายเกริกไกรวัล คิดกิ่ง','นายสมพงษ์ สาลี','นายสุวิท ชามะลิ'];
- for(const s of ss){
+ for(const p of [...doc.getElementsByTagNameNS('*','p')]){
+  const txt=p.textContent||''; if(!/ครูผู้สอน/.test(txt))continue;
+  const cm=txt.match(/\d{5}-\d{4}/); if(!cm)continue;
+  const s=ss.find(x=>String(x.code||'')===cm[0]); if(!s)continue;
   const nm=subjectTeacherName(s); if(!nm)continue;
-  for(const p of [...doc.getElementsByTagNameNS('*','p')]){
-   const full=p.textContent||'';
-   if(!full.includes(s.code))continue;
-   const parent=p.parentNode; if(!parent)continue;
-   for(const q of [...parent.getElementsByTagNameNS('*','p')]){
-    const txt=q.textContent||''; if(!/ครูผู้สอน/.test(txt))continue;
-    const ts=[...q.getElementsByTagNameNS('*','t')]; if(!ts.length)continue;
-    let out=txt; for(const old of known)out=out.replace(old,nm);
-    if(out===txt && /ครูผู้สอน/.test(txt))out=txt.replace(/(ครูผู้สอน[^ก-๙A-Za-z]*).*$/,'$1'+nm);
-    ts[0].textContent=out; for(let i=1;i<ts.length;i++)ts[i].textContent='';
-   }
-  }
+  const pos=txt.indexOf('ครูผู้สอน'); if(pos<0)continue;
+  const before=txt.slice(0,pos)+'ครูผู้สอน';
+  const after=txt.slice(pos+'ครูผู้สอน'.length);
+  const lead=(after.match(/^[.\s]*/)||[''])[0];
+  const trail=(after.match(/[.\s]*$/)||[''])[0];
+  // คงจุดไข่ปลา/ระยะเดิมของแบบฟอร์ม และเปลี่ยนเฉพาะชื่อ
+  setParagraphTextKeepStyle(p,before+lead+nm+trail);
+ }
+}
+function replaceSemesterKeepingForm(doc,sem){
+ for(const p of [...doc.getElementsByTagNameNS('*','p')]){
+  const txt=p.textContent||''; if(!/ภาคเรียนที่/.test(txt))continue;
+  const out=txt.replace(/(ภาคเรียนที่[.\s]*)([12๑๒])([.\s]*(?:ปีการศึกษา|$))/,(_,a,b,c)=>a+sem+c);
+  if(out!==txt)setParagraphTextKeepStyle(p,out);
  }
 }
 async function makeDocx(template,kind){if(typeof JSZip==='undefined')throw new Error('ไม่พบตัวสร้าง Word (JSZip) กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วเปิดเว็บใหม่');saveDocSettings();const res=await fetch(template,{cache:'no-store'});if(!res.ok)throw new Error('เปิด Word ต้นฉบับไม่ได้');const zip=await JSZip.loadAsync(await res.arrayBuffer());const xml=await zip.file('word/document.xml').async('string');const doc=new DOMParser().parseFromString(xml,XML);const p=activePlan()||{},year=thaiToArabic($('bkYear')?.value||p.academicYear||'2569'),sem=thaiToArabic($('bkSem')?.value||p.semester||'1'),ds=docSettings(),date=ds.date||'',head=ds.head||'',rows=selectedRows();
- const repls=[[/2568/g,year],[/๒๕๖๘/g,year],[/ภาคเรียนที่\s*[.\s]*[12๑๒]/g,'ภาคเรียนที่ '+sem],[/๒\/2568/g,sem+'/'+year],[/2\/2568/g,sem+'/'+year],[/๒๙ กันยายน 2568/g,date||'29 กันยายน '+year],[/29 กันยายน 2568/g,date||'29 กันยายน '+year]];
- if(head)repls.push([/นายสุปกาณฑ์ ไพรนอก/g,head]);if(ds.director)repls.push([/นายสุริยา พงษ์ศิริรักษ์/g,ds.director]);if(ds.committee2)repls.push([/นายไกร ทองแดง/g,ds.committee2]);replaceParagraphs(doc,repls);replaceNameNearRole(doc,/รองผู้อำนวยการฝ่ายวิชาการ/, 'นางสาวเพ็ญศรี กุลพัฒน์',ds.deputy,4);replaceNameNearRole(doc,/กรรมการ/, 'นางสาวเพ็ญศรี กุลพัฒน์',ds.committee1,3);
+ const repls=[[/2568/g,year],[/๒๕๖๘/g,year],[/๒\/2568/g,sem+'/'+year],[/2\/2568/g,sem+'/'+year],[/๒๙ กันยายน 2568/g,date||'29 กันยายน '+year],[/29 กันยายน 2568/g,date||'29 กันยายน '+year]];
+ if(head)repls.push([/นายสุปกาณฑ์ ไพรนอก/g,head]);if(ds.director)repls.push([/นายสุริยา พงษ์ศิริรักษ์/g,ds.director]);if(ds.committee2)repls.push([/นายไกร ทองแดง/g,ds.committee2]);replaceParagraphs(doc,repls);replaceSemesterKeepingForm(doc,sem);replaceNameNearRole(doc,/รองผู้อำนวยการฝ่ายวิชาการ/, 'นางสาวเพ็ญศรี กุลพัฒน์',ds.deputy,4);replaceNameNearRole(doc,/กรรมการ/, 'นางสาวเพ็ญศรี กุลพัฒน์',ds.committee1,3);
  if(kind==='memo')fillMemo(doc,rows);else{fillSmo1(doc);fillSmo2(doc,rows);fillSmo3(doc,rows);fillSmo4(doc,rows);replaceAllTeacherNames(doc)}
  refreshSubjectNames(doc);normalizeDocDigits(doc);
  zip.file('word/document.xml',new XMLSerializer().serializeToString(doc));return zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
@@ -1219,7 +1225,7 @@ window.v58SelectedBook=function(code){const a=books(),m=sels(),id=m[key(code)];r
 window.addEventListener('bookdbchange',render);['bkYear','bkSem','bkPlan'].forEach(id=>$(id)?.addEventListener(id==='bkYear'?'input':'change',()=>setTimeout(render,30)));document.querySelector('[data-page="bookPage"]')?.addEventListener('click',()=>setTimeout(()=>{ensure();render()},100));setTimeout(ensure,700);
 })();
 </script>
-<script>console.info("college-system v59 document settings + dynamic year/signers");</script>
+<script>console.info("college-system v61 exact-form teacher + dotted semester fields");</script>
 <script id="v60-subject-teacher-docs">
 (()=>{
 const $=id=>document.getElementById(id),KEY='college_freebook_subject_teachers_v60';
