@@ -1,0 +1,4 @@
+Scheduling inline scripts: byte-identical to v50.
+Original DOCX templates and image: byte-identical.
+Browser tests: passed export, import review/confirm, book replacement, persistence, term switching and overflow blocking.
+Document rendering: tested with substitute Thai fonts; SMO4 signature page overflow remains a known limitation. No claim of exact Word/PDF pagination.
