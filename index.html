@@ -1085,19 +1085,22 @@ function fillSmo3(doc,rows){const pubs=[...new Set(rows.map(x=>x.b.publisher).fi
 function fillSmo4(doc,rows){for(const t of [...doc.getElementsByTagNameNS('*','tbl')]){const h=tableHead(t,2);if(h.includes('จุดประสงค์รายวิชา')&&h.includes('สมรรถนะรายวิชา')){fillRows(t,2,rows,(cs,x,i)=>{[i+1,x.b.title||x.s.name,x.b.author,x.b.publisher,x.b.price].forEach((v,j)=>cs[j]&&setCellText(cs[j],v))},5);break}}}
 function setParagraphTextKeepStyle(p,text){const ts=[...p.getElementsByTagNameNS('*','t')];if(!ts.length)return false;ts[0].textContent=String(text??'');for(let i=1;i<ts.length;i++)ts[i].textContent='';return true}
 function replaceAllTeacherNames(doc){
- // สมอ.1: ผูกครูกับ "รหัสวิชา" ในบรรทัดเดียวกันโดยตรง เพื่อไม่ให้ชื่อครูหลุดไปวิชาอื่น
- const ss=currentSubjects();
+ // v62: Word ต้นฉบับแยกบรรทัดรหัสวิชาและบรรทัดครูผู้สอนออกจากกัน
+ // จึงเดินเอกสารตามลำดับและจำรหัสวิชาล่าสุด แล้วใช้ override ของปี/ภาค/แผนเดียวกัน
+ const ss=currentSubjects(), byCode=new Map(ss.map(s=>[String(s.code||''),s]));
+ let current=null;
  for(const p of [...doc.getElementsByTagNameNS('*','p')]){
-  const txt=p.textContent||''; if(!/ครูผู้สอน/.test(txt))continue;
-  const cm=txt.match(/\d{5}-\d{4}/); if(!cm)continue;
-  const s=ss.find(x=>String(x.code||'')===cm[0]); if(!s)continue;
-  const nm=subjectTeacherName(s); if(!nm)continue;
+  const txt=p.textContent||'';
+  const cm=txt.match(/\d{5}-\d{4}/);
+  if(cm&&byCode.has(cm[0])) current=byCode.get(cm[0]);
+  if(!current||!/ครูผู้สอน/.test(txt))continue;
+  const nm=subjectTeacherName(current); if(!nm)continue;
   const pos=txt.indexOf('ครูผู้สอน'); if(pos<0)continue;
   const before=txt.slice(0,pos)+'ครูผู้สอน';
   const after=txt.slice(pos+'ครูผู้สอน'.length);
-  const lead=(after.match(/^[.\s]*/)||[''])[0];
+  // รักษาจุดไข่ปลา/ช่องว่างหัว-ท้ายของช่องเดิม แต่แทนค่าชื่อทั้งหมดในช่อง
+  const lead=(after.match(/^[.\s:：]*/)||[''])[0];
   const trail=(after.match(/[.\s]*$/)||[''])[0];
-  // คงจุดไข่ปลา/ระยะเดิมของแบบฟอร์ม และเปลี่ยนเฉพาะชื่อ
   setParagraphTextKeepStyle(p,before+lead+nm+trail);
  }
 }
@@ -1225,7 +1228,7 @@ window.v58SelectedBook=function(code){const a=books(),m=sels(),id=m[key(code)];r
 window.addEventListener('bookdbchange',render);['bkYear','bkSem','bkPlan'].forEach(id=>$(id)?.addEventListener(id==='bkYear'?'input':'change',()=>setTimeout(render,30)));document.querySelector('[data-page="bookPage"]')?.addEventListener('click',()=>setTimeout(()=>{ensure();render()},100));setTimeout(ensure,700);
 })();
 </script>
-<script>console.info("college-system v61 exact-form teacher + dotted semester fields");</script>
+<script>console.info("college-system v62 live teacher override in DOCX preview/export");</script>
 <script id="v60-subject-teacher-docs">
 (()=>{
 const $=id=>document.getElementById(id),KEY='college_freebook_subject_teachers_v60';
@@ -1235,7 +1238,7 @@ function plan(){return (state?.plans||[]).find(p=>p.id===$('bkPlan')?.value)}
 function subs(){return (state?.subjects||[]).filter(s=>s.planId===$('bkPlan')?.value)}
 function key(s){return [($('bkYear')?.value||plan()?.academicYear||''),($('bkSem')?.value||plan()?.semester||''),($('bkPlan')?.value||''),s.code].join('|')}
 function tname(s){return (state?.teachers||[]).find(t=>t.id===s.teacherId)?.name||''}
-function render(){const box=$('bkSubjectTeacherList');if(!box)return;const ss=subs(),m=map();if(!ss.length){box.innerHTML='<div class="notice warn">ยังไม่มีรายวิชาในแผนที่เลือก</div>';return}box.innerHTML='<table><thead><tr><th>รหัสวิชา</th><th>ชื่อวิชา</th><th>ครูจากแผน</th><th>ครูที่ใช้ในเอกสาร</th><th>จัดการ</th></tr></thead><tbody>'+ss.map(s=>{const base=tname(s),cur=m[key(s)]||base;return `<tr><td>${s.code||''}</td><td>${s.name||''}</td><td>${base||'<span class="bk-wait">ยังไม่กำหนด</span>'}</td><td><select data-teacher="${s.id}"><option value="">-- ใช้ครูจากแผน --</option>${(state?.teachers||[]).map(t=>`<option value="${t.name.replace(/"/g,'&quot;')}" ${cur===t.name&&m[key(s)]?'selected':''}>${t.name}</option>`).join('')}</select></td><td><button class="btn light" data-reset="${s.id}">ใช้ตามแผน</button></td></tr>`}).join('')+'</tbody></table>';box.querySelectorAll('[data-teacher]').forEach(el=>el.onchange=()=>{const s=ss.find(x=>x.id===el.dataset.teacher);if(!s)return;const mm=map();if(el.value)mm[key(s)]=el.value;else delete mm[key(s)];save(mm);$('bkTeacherStatus').textContent=`บันทึกครูผู้สอน ${s.code} แล้ว • สมอ.1/2/4 จะใช้ชื่อนี้`;render()});box.querySelectorAll('[data-reset]').forEach(el=>el.onclick=()=>{const s=ss.find(x=>x.id===el.dataset.reset);if(!s)return;const mm=map();delete mm[key(s)];save(mm);render()})}
+function render(){const box=$('bkSubjectTeacherList');if(!box)return;const ss=subs(),m=map();if(!ss.length){box.innerHTML='<div class="notice warn">ยังไม่มีรายวิชาในแผนที่เลือก</div>';return}box.innerHTML='<table><thead><tr><th>รหัสวิชา</th><th>ชื่อวิชา</th><th>ครูจากแผน</th><th>ครูที่ใช้ในเอกสาร</th><th>จัดการ</th></tr></thead><tbody>'+ss.map(s=>{const base=tname(s),cur=m[key(s)]||base;return `<tr><td>${s.code||''}</td><td>${s.name||''}</td><td>${base||'<span class="bk-wait">ยังไม่กำหนด</span>'}</td><td><select data-teacher="${s.id}"><option value="">-- ใช้ครูจากแผน --</option>${(state?.teachers||[]).map(t=>`<option value="${t.name.replace(/"/g,'&quot;')}" ${cur===t.name&&m[key(s)]?'selected':''}>${t.name}</option>`).join('')}</select></td><td><button class="btn light" data-reset="${s.id}">ใช้ตามแผน</button></td></tr>`}).join('')+'</tbody></table>';box.querySelectorAll('[data-teacher]').forEach(el=>el.onchange=()=>{const s=ss.find(x=>x.id===el.dataset.teacher);if(!s)return;const mm=map();if(el.value)mm[key(s)]=el.value;else delete mm[key(s)];save(mm);$('bkTeacherStatus').textContent=`บันทึกครูผู้สอน ${s.code} แล้ว • ตัวอย่างครั้งถัดไปจะใช้ ${el.value}`;const w=$('bkDocPreviewWrap');if(w)w.style.display='none';render()});box.querySelectorAll('[data-reset]').forEach(el=>el.onclick=()=>{const s=ss.find(x=>x.id===el.dataset.reset);if(!s)return;const mm=map();delete mm[key(s)];save(mm);render()})}
 ['bkYear','bkSem','bkPlan'].forEach(id=>$(id)?.addEventListener(id==='bkYear'?'input':'change',()=>setTimeout(render,30)));document.querySelector('[data-page="bookPage"]')?.addEventListener('click',()=>setTimeout(render,100));setTimeout(render,900);
 })();
 </script>
