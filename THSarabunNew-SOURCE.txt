@@ -1,0 +1,5 @@
+TH Sarabun New — original typeface by Suppakit Chalermlarp, SIPA.
+Webfont mirror: https://github.com/Phonbopit/sarabun-webfont
+Original release: https://www.f0nt.com/release/th-sarabun-new/
+License reference: https://thaifaces.com/resources/license/GPL-License-TH-Sarabun-New.pdf
+Font files are redistributed unmodified.
