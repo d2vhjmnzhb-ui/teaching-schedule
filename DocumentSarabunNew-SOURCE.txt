@@ -1,0 +1,6 @@
+TH Sarabun New 1.35 — Suppakit Chalermlarp / SIPA
+Original release: https://www.f0nt.com/release/th-sarabun-new/
+Download: https://www.f0nt.com/?dl_name=sipafonts%2FTHSarabunNew.zip
+License: GPL 2.0 with Font Exception (see THSarabunNew-license.pdf).
+Regular and bold files are unchanged; filenames normalized for the document module.
+The earlier timetable font files remain separate.

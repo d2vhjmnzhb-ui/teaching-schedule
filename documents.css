@@ -4,3 +4,9 @@
 @media(max-width:650px){main{padding:12px}.homeHero h2{font-size:24px}#documentsPage .studioHero{padding:20px}#documentsPage .studioHero h2{font-size:25px}.studioSteps{font-size:12px}.studioSteps span{margin:0 4px}#documentsPage .card{padding:16px}#docPreview{padding:12px}}
 
 @media print{body.printing-doc #printPage,body.printing-doc #preview{display:none!important}body.printing-doc .docPaper{zoom:1!important}}
+#docForm [hidden]{display:none!important}
+#docForm details{margin:14px 0;padding:12px;border:1px solid #dbe5ed;border-radius:10px}
+#docForm summary{cursor:pointer;font-weight:700;color:#185563}
+#docForm>label:has(#doc_body){display:block;margin-top:18px}
+#docForm .grid:empty{display:none}
+#docPerson{margin-bottom:8px}
