@@ -230,9 +230,9 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
  .excel-courses th:last-child,.excel-courses td:last-child{border-right:1px solid #000!important}
 }
 </style>
-<style>nav button[hidden]{display:none!important}body[data-module="books"] nav,body[data-module="documents"] nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}#documentsPage textarea{min-height:110px;resize:vertical}#documentsPage .doc-body{min-height:220px}.doc-list{overflow:auto}#docStatus{white-space:pre-line}@media(max-width:650px){.modules{grid-template-columns:1fr!important}#documentsPage .grid{grid-template-columns:1fr!important}}</style><link rel="stylesheet" href="document-paper.css?v=70"><link rel="stylesheet" href="documents.css?v=70"></head>
+<style>nav button[hidden]{display:none!important}body[data-module="books"] nav,body[data-module="documents"] nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}#documentsPage textarea{min-height:110px;resize:vertical}#documentsPage .doc-body{min-height:220px}.doc-list{overflow:auto}#docStatus{white-space:pre-line}@media(max-width:650px){.modules{grid-template-columns:1fr!important}#documentsPage .grid{grid-template-columns:1fr!important}}</style><link rel="stylesheet" href="document-paper.css?v=71"><link rel="stylesheet" href="documents.css?v=71"></head>
 <body>
-<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">v70 • ระบบงานแยกส่วน</span></header>
+<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">v71 • ระบบงานแยกส่วน</span></header>
 <div class="app">
 <nav id="nav">
 <button data-page="homePage" class="active">หน้าหลัก</button>
@@ -1334,6 +1334,7 @@ function render(){const box=$('bkSubjectTeacherList');if(!box)return;const ss=su
 ['bkYear','bkSem','bkPlan'].forEach(id=>$(id)?.addEventListener(id==='bkYear'?'input':'change',()=>setTimeout(render,30)));document.querySelector('[data-page="bookPage"]')?.addEventListener('click',()=>setTimeout(render,100));setTimeout(render,900);
 })();
 </script>
+<link rel="stylesheet" href="schedule-borders.css?v=71">
 </body></html>
 <!-- v19 student-first scheduling refinements -->
 <style>
@@ -2638,4 +2639,4 @@ const boot=()=>{ensure();document.querySelector('[data-page="bookPage"]')?.addEv
 })();
 </script>
 
-<script src="documents.js?v=70"></script>
+<script src="documents.js?v=71"></script>

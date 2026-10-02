@@ -1,0 +1,12 @@
+/* One border model for preview, browser print and captured PDF. */
+#printPage .excel-top{display:grid!important;grid-template-columns:28% minmax(0,72%)!important;gap:0!important;align-items:stretch!important;border:1px solid #000!important;border-bottom:0!important;margin:0!important;padding:0!important;width:100%!important;box-sizing:border-box!important}
+#printPage .excel-identity{height:auto!important;min-height:0!important;align-self:stretch!important;border:0!important;border-right:1px solid #000!important;box-sizing:border-box!important}
+#printPage .excel-courses{align-self:stretch!important;width:100%!important;height:100%!important;min-width:0!important;margin:0!important;border:0!important;border-spacing:0!important;border-collapse:collapse!important;box-sizing:border-box!important}
+#printPage .excel-courses th,#printPage .excel-courses td{border:1px solid #000!important;box-sizing:border-box!important}
+#printPage .excel-courses tr:first-child>th{border-top:0!important}
+#printPage .excel-courses tr:last-child>td{border-bottom:0!important}
+#printPage .excel-courses tr>:first-child{border-left:0!important}
+#printPage .excel-courses tr>:last-child{border-right:0!important}
+#printPage .excel-schedule{width:100%!important;margin:0!important;border-collapse:collapse!important;border-spacing:0!important;border:1px solid #000!important;box-sizing:border-box!important}
+#printPage .excel-schedule th,#printPage .excel-schedule td{border:1px solid #000!important;box-sizing:border-box!important}
+@media print{#printPage .excel-sheet{overflow:visible!important}#printPage .excel-top,#printPage .excel-schedule{width:100%!important}#printPage .tablewrap{overflow:visible!important}}
