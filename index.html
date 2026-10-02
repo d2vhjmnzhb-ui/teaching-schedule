@@ -597,8 +597,40 @@ function editSubject(id){
  let rn=prompt('ห้องเรียน',room(s.roomId)?.name||'');let rr=state.rooms.find(x=>x.name===rn);if(rr)s.roomId=rr.id;renderAll();
 }
 function deleteSubject(id){if(!confirm('ลบรายวิชานี้และคาบที่จัดไว้?'))return;state.subjects=state.subjects.filter(s=>s.id!==id);Object.keys(state.lessons).forEach(k=>{if(state.lessons[k].subjectId===id)delete state.lessons[k]});renderAll()}
-function removeTeacherById(id){if(Object.values(state.lessons).some(l=>l.teacherId===id))return alert('ครูคนนี้มีคาบสอนอยู่');state.teachers=state.teachers.filter(x=>x.id!==id);renderAll()}
-function removeRoomById(id){if(Object.values(state.lessons).some(l=>l.roomId===id))return alert('ห้องนี้ถูกใช้ในตาราง');state.rooms=state.rooms.filter(x=>x.id!==id);renderAll()}
+function resourceLessonUsage(field,id){
+ const active=[],stale=[],counts=new Map();
+ Object.entries(state.lessons||{}).forEach(([k,l])=>{
+  if(!l||l[field]!==id)return;
+  const q=parseKey(k),p=state.plans.find(x=>String(x.id)===String(q.pid)),g=state.groups.find(x=>String(x.id)===String(q.gid));
+  if(!p||!g){stale.push(k);return;}
+  active.push(k);
+  const label=`${p.name||p.id} • ภาคเรียน ${p.term||'-'} • ${g.name||g.id}`;
+  counts.set(label,(counts.get(label)||0)+1);
+ });
+ return {active,stale,details:[...counts].map(([label,n])=>`${label}: ${n} รายการคาบ`).join('\n')};
+}
+function removeScheduleResource(kind,id){
+ const isTeacher=kind==='teacher',list=isTeacher?state.teachers:state.rooms,record=list.find(x=>x.id===id);
+ if(!record)return;
+ const usage=resourceLessonUsage(isTeacher?'teacherId':'roomId',id);
+ if(usage.active.length)return alert(`ยังลบ ${record.name} ไม่ได้ เพราะมีคาบในรายการต่อไปนี้:\n\n${usage.details}\n\nยอดคาบที่แสดงบนหน้าครูเป็นของแผนปัจจุบันเท่านั้น ส่วนปุ่มล้างตารางล้างเฉพาะห้อง/กลุ่มที่เลือก กรุณาเปิดแผนและห้องที่ระบุเพื่อตรวจหรือล้างคาบก่อนลบ`);
+ const staleNote=usage.stale.length?`\nพบข้อมูลคาบค้าง ${usage.stale.length} รายการที่ไม่มีแผนหรือกลุ่มแล้ว จะลบข้อมูลค้างเหล่านี้ด้วย`:'';
+ if(!confirm(`ลบ ${record.name} ออกจากรายชื่อ?${staleNote}\nการผูก${isTeacher?'ครู':'ห้อง'}กับรายวิชาจะถูกยกเลิก`))return;
+ usage.stale.forEach(k=>delete state.lessons[k]);
+ if(isTeacher){
+  state.teachers=state.teachers.filter(x=>x.id!==id);
+  state.subjects.forEach(x=>{if(x.teacherId===id)x.teacherId=''});
+  state.rooms.forEach(x=>{if(x.teacherId===id)x.teacherId=''});
+ }else{
+  state.rooms=state.rooms.filter(x=>x.id!==id);
+  state.subjects.forEach(x=>{if(x.roomId===id)x.roomId=''});
+  state.teachers.forEach(x=>{if(Array.isArray(x.roomIds))x.roomIds=x.roomIds.filter(r=>r!==id)});
+ }
+ renderAll();
+}
+function removeTeacherById(id){removeScheduleResource('teacher',id)}
+function removeRoomById(id){removeScheduleResource('room',id)}
+
 function signatureHtml(){
  const z=state.signers||{};
  const items=[[z.dept,'หัวหน้าแผนกวิชา'],[z.curriculum,'หัวหน้างานพัฒนาหลักสูตรการเรียนการสอน'],[z.academic,'รองผู้อำนวยการฝ่ายวิชาการ'],[z.director,'ผู้อำนวยการ']];
