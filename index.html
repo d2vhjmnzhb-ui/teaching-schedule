@@ -482,7 +482,15 @@ function renderStudent(){
   }
  });
 }
+function updateTeacherViewStatus(){
+ const tid=teacherView.value||state.teachers[0]?.id||'',t=teacher(tid),status=document.getElementById('teacherViewStatus');
+ if(!status)return;
+ if(!t){status.textContent='';return;}
+ const load=teacherLoad(tid);
+ status.textContent=`${t.name} — คาบใน ${load.inside}/${t.insideTarget||0} • คาบนอก ${load.outside}/${t.outsideTarget||0} • รวม ${load.inside+load.outside} ชม.`;
+}
 function renderTeacher(){
+ updateTeacherViewStatus();
  let tid=teacherView.value||state.teachers[0]?.id||'';
  teacherTable.innerHTML=summaryHtml('teacher',tid)+makeTeacherCombinedTable(tid);
 }
@@ -499,7 +507,7 @@ function renderPicks(){
  subjectPick.innerHTML=arr.map(s=>`<option value="${s.id}">${esc(s.code)} ${esc(s.name)} (${s.t+s.p} ชม.)</option>`).join('');
  teacherPick.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
  let keepTeacherView=teacherView.value||state.teachers[0]?.id||''; teacherView.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);return `<option value="${t.id}">${esc(t.name)} • ใน ${L.inside}/${t.insideTarget||0} • นอก ${L.outside}/${t.outsideTarget||0} • รวม ${L.inside+L.outside} ชม.</option>`}).join(''); if(state.teachers.some(t=>t.id===keepTeacherView))teacherView.value=keepTeacherView; let ptv=document.getElementById('printTeacherView'); if(ptv){let keepPrint=ptv.value||teacherView.value||state.teachers[0]?.id||'';ptv.innerHTML=state.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');if(state.teachers.some(t=>t.id===keepPrint))ptv.value=keepPrint;}
- let tv=teacher(teacherView.value||state.teachers[0]?.id),TL=tv?teacherLoad(tv.id):{inside:0,outside:0};let tvs=document.getElementById('teacherViewStatus');if(tvs&&tv)tvs.textContent=`${tv.name} — คาบใน ${TL.inside}/${tv.insideTarget||0} • คาบนอก ${TL.outside}/${tv.outsideTarget||0} • รวม ${TL.inside+TL.outside} ชม.`;
+ updateTeacherViewStatus();
  renderRoomPickForTeacher(teacherPick.value||state.teachers[0]?.id,roomPick.value);
  level.value=g.level;year.innerHTML=yearOptionsFor(g.level).map(y=>`<option ${String(g.year)===y?'selected':''}>${y}</option>`).join('');roomNo.value=g.roomNo||'1';groupNo.value=g.groupNo||'1';deptShort.value=g.deptShort||defaultDeptShort(g.level);groupCode.value=g.groupCode||'';advisor.value=g.advisor||'';semester.value=plan().semester||'1';academicYear.value=plan().academicYear||'2569';term.value=termLabel(semester.value,academicYear.value);groupShow.value=g.name;
 }
