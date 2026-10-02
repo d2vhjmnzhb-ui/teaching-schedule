@@ -230,9 +230,9 @@ body.home-mode nav{display:none!important}body.home-mode .app{grid-template-colu
  .excel-courses th:last-child,.excel-courses td:last-child{border-right:1px solid #000!important}
 }
 </style>
-<style>nav button[hidden]{display:none!important}body[data-module="books"] nav,body[data-module="documents"] nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}#documentsPage textarea{min-height:110px;resize:vertical}#documentsPage .doc-body{min-height:220px}.doc-list{overflow:auto}#docStatus{white-space:pre-line}@media(max-width:650px){.modules{grid-template-columns:1fr!important}#documentsPage .grid{grid-template-columns:1fr!important}}</style><link rel="stylesheet" href="document-paper.css?v=71"><link rel="stylesheet" href="documents.css?v=71"></head>
+<style>nav button[hidden]{display:none!important}body[data-module="books"] nav,body[data-module="documents"] nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}#documentsPage textarea{min-height:110px;resize:vertical}#documentsPage .doc-body{min-height:220px}.doc-list{overflow:auto}#docStatus{white-space:pre-line}@media(max-width:650px){.modules{grid-template-columns:1fr!important}#documentsPage .grid{grid-template-columns:1fr!important}}</style><link rel="stylesheet" href="document-paper.css?v=72"><link rel="stylesheet" href="documents.css?v=72"></head>
 <body>
-<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">v71 • ระบบงานแยกส่วน</span></header>
+<header><h1>ระบบบริหารงานวิทยาลัยเทคนิคปากช่อง</h1><span class="tag">v72 • ปรับแบบพิมพ์ตาราง</span></header>
 <div class="app">
 <nav id="nav">
 <button data-page="homePage" class="active">หน้าหลัก</button>
@@ -632,7 +632,7 @@ function renderPreview(mode=window.previewMode||'student'){
    sched+=`<tr><th class="pdf-day">วัน${d}</th>${di===0?'<td class="assembly-cell assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}${cells}</tr>`
  });
  let subs=mode==='student'?planSubjects():state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
- let course='';const SIDE_SLOTS=8;for(let i=0;i<SIDE_SLOTS;i++){let a=subs[i],b=subs[i+SIDE_SLOTS];let cr=x=>x?`<td class="course-code">${esc(x.code)}</td><td class="course-name" colspan="4">${esc(x.name)}</td><td class="course-num">${x.t}</td><td class="course-num">${x.p}</td><td class="course-num">${x.n}</td><td class="course-num">${x.t+x.p}</td>`:`<td class="course-code"></td><td class="course-name" colspan="4"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td>`;course+=`<tr>${cr(a)}${cr(b)}</tr>`} let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row"><td colspan="9"></td><td colspan="5">รวมทั้งหมด</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
+ let course='';const SIDE_SLOTS=8;const courseCells=x=>x?`<td class="course-code">${esc(x.code)}</td><td class="course-name" colspan="4">${esc(x.name)}</td><td class="course-num">${x.t}</td><td class="course-num">${x.p}</td><td class="course-num">${x.n}</td><td class="course-num">${x.t+x.p}</td>`:`<td class="course-code"></td><td class="course-name" colspan="4"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td>`;for(let i=0;i<SIDE_SLOTS;i++){course+=`<tr>${courseCells(subs[i])}${courseCells(subs[i+SIDE_SLOTS])}</tr>`}let sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP;course+=`<tr class="total-row">${courseCells(null)}<td class="total-label" colspan="5">รวม</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td></tr>`;
  let extra=mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:`<div>วุฒิการศึกษา ${esc(t?.qualification||'-')}</div><div>หน้าที่พิเศษ ${esc(t?.specialDuty||(t?.special?'มีหน้าที่พิเศษ':'-'))}</div>`;
  preview.innerHTML=`<div class="excel-sheet"><div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน ${esc(plan().term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} ${esc(who)}</div>${extra}<div>แผนกวิชา ช่างไฟฟ้ากำลัง</div></div></div><table class="excel-courses"><colgroup>${[0,1].map(()=>`<col class="course-code-col"><col class="course-name-col"><col class="course-name-col"><col class="course-name-col"><col class="course-name-col"><col class="course-num-col"><col class="course-num-col"><col class="course-num-col"><col class="course-num-col">`).join('')}</colgroup><tr><th class="course-code-head">รหัสวิชา</th><th class="course-name-head" colspan="4">ชื่อรายวิชา</th><th class="course-num-head">ท.</th><th class="course-num-head">ป.</th><th class="course-num-head">น.</th><th class="course-num-head">ช.</th><th class="course-code-head">รหัสวิชา</th><th class="course-name-head" colspan="4">ชื่อรายวิชา</th><th class="course-num-head">ท.</th><th class="course-num-head">ป.</th><th class="course-num-head">น.</th><th class="course-num-head">ช.</th></tr>${course}</table></div><table class="excel-schedule pdf-fixed"><colgroup><col class="col-day"><col class="col-assembly">${Array.from({length:12},()=>'<col class="col-period">').join('')}</colgroup><tr><th>เวลา</th><th class="assembly-time">07:45-08:00</th>${periodTimes.map(t=>`<th class="period-time-head">${t}</th>`).join('')}</tr><tr><th>วัน/คาบ</th><th class="assembly-blank"></th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table>${signatureHtml()}</div>`;
 }
@@ -1334,7 +1334,7 @@ function render(){const box=$('bkSubjectTeacherList');if(!box)return;const ss=su
 ['bkYear','bkSem','bkPlan'].forEach(id=>$(id)?.addEventListener(id==='bkYear'?'input':'change',()=>setTimeout(render,30)));document.querySelector('[data-page="bookPage"]')?.addEventListener('click',()=>setTimeout(render,100));setTimeout(render,900);
 })();
 </script>
-<link rel="stylesheet" href="schedule-borders.css?v=71">
+<link rel="stylesheet" href="schedule-borders.css?v=72">
 </body></html>
 <!-- v19 student-first scheduling refinements -->
 <style>
@@ -2639,4 +2639,43 @@ const boot=()=>{ensure();document.querySelector('[data-page="bookPage"]')?.addEv
 })();
 </script>
 
-<script src="documents.js?v=71"></script>
+<script src="documents.js?v=72"></script>
+<style id="print-layout-fix-v72">
+@media print{
+ @page{size:A4 landscape;margin:5mm}
+ html,body{width:100%!important;min-height:0!important;margin:0!important;padding:0!important;background:#fff!important}
+ body{display:block!important}
+ .app,main{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+ #printPage{display:block!important;width:100%!important;min-height:0!important;margin:0 auto!important;padding:0!important}
+ #printPage .card,#printPage .tablewrap{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important}
+ #preview,.preview{display:block!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0 auto!important;padding:0!important;overflow:visible!important;transform:none!important}
+ #printPage .excel-sheet{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0 auto!important;padding:0!important;overflow:visible!important;zoom:1!important;transform:none!important;box-sizing:border-box!important}
+ #printPage .excel-top{display:grid!important;grid-template-columns:28% minmax(0,72%)!important;align-items:stretch!important;gap:0!important;width:100%!important;margin:0!important;border:1px solid #000!important;box-sizing:border-box!important}
+ #printPage .excel-identity{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;min-height:0!important;height:auto!important;padding:2mm 2.5mm!important;border-right:1px solid #000!important;overflow:hidden!important;box-sizing:border-box!important}
+ #printPage .excel-logo-img{display:block!important;width:21mm!important;height:21mm!important;max-width:100%!important;object-fit:contain!important;margin:0 auto 1mm!important}
+ #printPage .excel-info{width:100%!important;min-width:0!important;margin:0!important;font-size:8pt!important;line-height:1.15!important;overflow:hidden!important}
+ #printPage .excel-info>div{height:auto!important;min-height:0!important;line-height:1.2!important;margin:0 0 .7mm!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
+ #printPage .excel-info>div:first-child{height:auto!important;font-size:11pt!important;line-height:1.15!important;text-align:center!important;margin:0 0 1mm!important}
+ #printPage .excel-courses{width:100%!important;height:100%!important;min-width:0!important;margin:0!important;border:0!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:7.5pt!important;box-sizing:border-box!important}
+ #printPage .excel-courses th,#printPage .excel-courses td{height:5.1mm!important;min-height:5.1mm!important;padding:.2mm .5mm!important;line-height:1!important;box-sizing:border-box!important;border:1px solid #000!important}
+ #printPage .excel-courses tr:first-child>th{border-top:0!important}
+ #printPage .excel-courses tr:last-child>td{border-bottom:0!important}
+ #printPage .excel-courses tr>:first-child{border-left:0!important}
+ #printPage .excel-courses tr>:last-child{border-right:0!important}
+ #printPage .excel-courses .course-code,#printPage .excel-courses .course-code-head{font-size:7pt!important;white-space:nowrap!important;text-align:center!important}
+ #printPage .excel-courses .course-name,#printPage .excel-courses .course-name-head{font-size:7.5pt!important;text-align:left!important;white-space:nowrap!important;overflow:hidden!important}
+ #printPage .excel-courses .course-num,#printPage .excel-courses .course-num-head{font-size:7pt!important;text-align:center!important;white-space:nowrap!important}
+ #printPage .excel-courses .total-label{text-align:right!important;font-weight:700!important;padding-right:1.5mm!important}
+ #printPage .excel-schedule{display:table!important;width:100%!important;margin:0!important;border:1px solid #000!important;border-collapse:collapse!important;border-spacing:0!important;table-layout:fixed!important;box-sizing:border-box!important}
+ #printPage .excel-schedule th,#printPage .excel-schedule td{border:1px solid #000!important;box-sizing:border-box!important;text-align:center!important;vertical-align:middle!important}
+ #printPage .excel-schedule tr:first-child th{height:7mm!important;font-size:7pt!important;white-space:nowrap!important;line-height:1!important}
+ #printPage .excel-schedule tr:nth-child(2) th{height:6mm!important;font-size:8pt!important;white-space:nowrap!important}
+ #printPage .excel-schedule tr:nth-child(n+3)>th,#printPage .excel-schedule tr:nth-child(n+3)>td{height:17mm!important}
+ #printPage .excel-schedule .lesson,#printPage .excel-schedule .lesson b,#printPage .excel-schedule .lesson span{font-size:7pt!important;line-height:1.1!important}
+ #printPage .excel-schedule .assembly-time{writing-mode:horizontal-tb!important;transform:none!important;font-size:6.5pt!important;white-space:nowrap!important}
+ #printPage .excel-sign,.signatures{width:100%!important;margin:5mm 0 0!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3mm!important;text-align:center!important;font-size:8pt!important;line-height:1.25!important}
+ #printPage .signature-box{white-space:nowrap!important;break-inside:avoid!important}
+ #printPage .signature-line{margin-bottom:1mm!important}
+ #printPage *{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
+}
+</style>

@@ -56,7 +56,7 @@ const base=new URL('.',location.href).href,copy=$('docPreview').cloneNode(true);
 if(current?.type==='external'){
  const pages=[...copy.children];copy.replaceChildren();
  ['working','original','copy'].forEach(kind=>{pages.forEach((page,index)=>{const clone=page.cloneNode(true);clone.dataset.printSet=kind;
- if(index===0&&kind==='working'){clone.classList.add('workingLetter');clone.insertAdjacentHTML('beforeend','<div class="draftChecks"><div>ร่าง………………………………</div><div>พิมพ์……………………………</div><div>ตรวจ……………………………</div></div>')}
+ if(index===0&&kind==='working'){clone.classList.add('workingLetter');clone.insertAdjacentHTML('beforeend','<div class="draftChecks"><span>ร่าง................</span><span>พิมพ์................</span><span>ตรวจ................</span></div>')}
  if(index===0&&kind==='copy'){const head=clone.querySelector('.externalHead');if(head)head.innerHTML='<div class="copyHeading">สำเนา</div>'}
  copy.appendChild(clone);
  });});
