@@ -37,3 +37,19 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 @font-face{font-family:'TH SarabunIT๙';src:url('fonts/THSarabunIT9-Bold.ttf') format('truetype');font-weight:700;font-display:block}
 @font-face{font-family:'Document Sarabun New';src:url('fonts/DocumentSarabunNew.ttf') format('truetype');font-weight:400;font-display:block}
 @font-face{font-family:'Document Sarabun New';src:url('fonts/DocumentSarabunNew-Bold.ttf') format('truetype');font-weight:700;font-display:block}
+@font-face{font-family:'TH SarabunPSK';src:url('fonts/THSarabunPSK.ttf') format('truetype');font-weight:400;font-display:block}
+@font-face{font-family:'TH SarabunPSK';src:url('fonts/THSarabunPSK-Bold.ttf') format('truetype');font-weight:700;font-display:block}
+/* Keep the printable inset inside the sheet; no dependency on named @page margins. */
+@media print{
+ @page{size:A4 portrait;margin:0}
+ .document-only #docPreview{width:210mm;margin:0;padding:0;overflow:visible}
+ .document-only .docPaper,
+ .document-only .docPaper.internalPaper,
+ .document-only .docPaper.externalPaper{
+  page:auto!important;width:210mm!important;min-height:296mm!important;
+  margin:0!important;padding:25mm 20mm 20mm 30mm!important;
+  box-sizing:border-box!important;zoom:1!important;transform:none!important;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;
+ }
+ .document-only .docPaper.externalPaper{padding-top:15mm!important}
+}
