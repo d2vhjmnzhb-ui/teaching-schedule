@@ -504,13 +504,16 @@ function renderPicks(){
  level.value=g.level;year.innerHTML=yearOptionsFor(g.level).map(y=>`<option ${String(g.year)===y?'selected':''}>${y}</option>`).join('');roomNo.value=g.roomNo||'1';groupNo.value=g.groupNo||'1';deptShort.value=g.deptShort||defaultDeptShort(g.level);groupCode.value=g.groupCode||'';advisor.value=g.advisor||'';semester.value=plan().semester||'1';academicYear.value=plan().academicYear||'2569';term.value=termLabel(semester.value,academicYear.value);groupShow.value=g.name;
 }
 function teacherLoad(tid){
- let inside=0,outside=0;
- Object.entries(state.lessons).forEach(([k,l])=>{let q=parseKey(k);if(q.pid!==state.activePlanId||l.teacherId!==tid)return;if(isOutside(q.p))outside++;else inside++});
- return {inside,outside};
+ // Count a shared teaching period once, then allocate against this teacher's targets.
+ const slots=new Set();
+ Object.entries(state.lessons).forEach(([k,l])=>{const q=parseKey(k);if(q.pid!==state.activePlanId||l.teacherId!==tid)return;slots.add(`${q.d}|${q.p}`)});
+ const t=teacher(tid),insideTarget=Math.max(0,Number(t?.insideTarget)||0),outsideTarget=Math.max(0,Number(t?.outsideTarget)||0);
+ const total=slots.size,outside=Math.min(outsideTarget,Math.max(0,total-insideTarget));
+ return {inside:total-outside,outside};
 }
 function renderLists(){
- teacherList.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);let cls=(L.inside>t.insideTarget||L.outside>t.outsideTarget)?'load-over':((L.inside<t.insideTarget||L.outside<t.outsideTarget)?'load-warn':'load-ok');
- let complete=(L.inside===Number(t.insideTarget||0)&&L.outside===Number(t.outsideTarget||0)), over=(L.inside>Number(t.insideTarget||0)||L.outside>Number(t.outsideTarget||0));let status=complete?'ครบ':(over?'เกินเป้า':'ยังไม่ครบ'),statusCls=complete?'ok':(over?'over':'warn');
+ teacherList.innerHTML=state.teachers.map(t=>{let L=teacherLoad(t.id);let cls=(L.inside<Number(t.insideTarget||0)||L.outside<Number(t.outsideTarget||0))?'load-warn':'load-ok';
+ let complete=(L.inside>=Number(t.insideTarget||0)&&L.outside>=Number(t.outsideTarget||0)), over=(L.inside>Number(t.insideTarget||0)||L.outside>Number(t.outsideTarget||0));let status=complete?'ครบ':(over?'เกินเป้า':'ยังไม่ครบ'),statusCls=complete?'ok':(over?'over':'warn');
  return `<div class="teacher-card"><b>${esc(t.name)}</b><span class="badge">${esc(t.type)}</span><div class="meta">วุฒิการศึกษา: ${esc(t.qualification||'-')} • หน้าที่พิเศษ: ${esc(t.specialDuty||(t.special?'มีหน้าที่พิเศษ':'-'))}</div><div class="meta">คาบใน <span class="${cls}">${L.inside}/${t.insideTarget}</span> • คาบนอก <span class="${cls}">${L.outside}/${t.outsideTarget}</span> • สถานะ <span class="teacher-complete ${statusCls}">${status}</span></div><div class="actions"><button class="btn light" onclick="editTeacher('${t.id}')">แก้ไข</button><button class="btn danger" onclick="removeTeacherById('${t.id}')">ลบ</button></div></div>`}).join('');
  roomList.innerHTML=state.rooms.map(r=>`<div class="subject"><div>${esc(r.name)}</div><button class="btn danger" onclick="removeRoomById('${r.id}')">ลบ</button></div>`).join('');
 }
