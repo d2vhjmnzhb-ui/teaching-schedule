@@ -63,8 +63,12 @@ if(current?.type==='external'){
  });});
 }
 
-w.document.open();w.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(val('subject')||'หนังสือราชการ')+'</title><link rel="stylesheet" href="document-paper.css?v=83"></head><body class="document-only"><div class="printTools"><button onclick="window.print()">พิมพ์ / บันทึก PDF</button><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p></div>'+copy.outerHTML+'</body></html>');
-w.document.close();w.addEventListener('load',async()=>{await w.document.fonts.ready;await Promise.all([...w.document.images].map(img=>img.decode?img.decode().catch(()=>{}):Promise.resolve()));fitLines(w.document);ruleMemoLines(w.document);positionDraftChecks(w.document);w.focus();w.print();},{once:true});
+w.document.open();w.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(val('subject')||'หนังสือราชการ')+'</title><link rel="stylesheet" href="document-paper.css?v=84"></head><body class="document-only"><div class="printTools"><button id="printReadyButton" disabled>พิมพ์ / บันทึก PDF</button><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p></div>'+copy.outerHTML+'</body></html>');
+w.addEventListener('load',async()=>{
+ const button=w.document.getElementById('printReadyButton');
+ const readyPrint=async()=>{button.disabled=true;try{await ensurePaperFonts(w.document);await Promise.all([...w.document.images].map(img=>img.decode?img.decode().catch(()=>{}):Promise.resolve()));fitLines(w.document);ruleMemoLines(w.document);positionDraftChecks(w.document);w.focus();w.print();}catch(error){w.alert('โหลดฟอนต์เอกสารไม่สำเร็จ กรุณาตรวจการเชื่อมต่อและอัปโหลดโฟลเดอร์ fonts ให้ครบ แล้วกดพิมพ์อีกครั้ง');}finally{button.disabled=false;}};
+ button.onclick=readyPrint;await readyPrint();
+},{once:true});w.document.close();
 }
 function positionDraftChecks(doc){doc.querySelectorAll('.draftChecks').forEach(footer=>{footer.style.marginTop='12mm';const paper=footer.closest('.docPaper'),win=doc.defaultView,style=win.getComputedStyle(paper),contentTop=paper.getBoundingClientRect().top+parseFloat(style.paddingTop),used=footer.getBoundingClientRect().top-contentTop,footerHeight=footer.getBoundingClientRect().height,area=262*96/25.4;if(used+footerHeight<area)footer.style.marginTop=(12*96/25.4+area-used-footerHeight-2)+'px';});}
 function changed(){dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก'}
@@ -88,7 +92,21 @@ requestAnimationFrame(()=>{fitLines($('docPreview'));fitPaper();const long=[...$
 
 function extraSigners(){try{return JSON.parse(val('extraSigners')||'[]').filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),position:String(x.position||''),short:String(x.short||'')}))}catch{return []}}
 function renderExtraSigners(){if(!$('extraSignerEditor'))return;$('extraSignerEditor').innerHTML=extraSigners().map((a,i)=>`<div class="attachmentCard"><b>ผู้ลงนามเพิ่ม ${i+1}</b><button type="button" class="btn light" data-signer-remove="${i}">ลบคนนี้</button>${['name','position','short'].map(k=>`<label>${{name:'ชื่อ–สกุล',position:'ตำแหน่งเต็ม',short:'ตำแหน่งย่อสำหรับแสดง (เว้นว่างใช้ชื่อเต็ม)'}[k]}<input data-signer-index="${i}" data-signer-field="${k}" value="${esc(a[k])}"></label>`).join('')}</div>`).join('')}
-function fitLines(root){if(!root)return;ruleMemoLines(root);root.querySelectorAll('.fitLine').forEach(box=>{const span=box.querySelector('span');if(!span)return;span.style.transform='';span.style.display='inline-block';const width=box.clientWidth;if(width&&span.offsetWidth>width)span.style.transform=`scaleX(${width/span.offsetWidth})`;});}
+async function ensurePaperFonts(doc){
+ const paper=doc.querySelector('.docPaper');if(!paper)return;
+ const css=doc.defaultView.getComputedStyle(paper),family=css.fontFamily.split(',')[0],sample='.(ผู้ลงนาม) ๑๒๓';
+ for(const weight of [400,700]){const faces=await doc.fonts.load(`${weight} ${css.fontSize} ${family}`,sample);if(!faces.length||faces.some(f=>f.status!=='loaded'))throw new Error('Document font unavailable');}
+ await doc.fonts.ready;
+}
+function fitSignatureDots(root){
+ root.querySelectorAll('.signatureDots').forEach(span=>{
+  span.textContent='.';const unit=span.getBoundingClientRect().width;
+  const box=span.parentElement,win=span.ownerDocument.defaultView,zoom=box.getBoundingClientRect().width/(box.offsetWidth||1);
+  if(unit>0){const target=Math.min(60*96/25.4*zoom,box.getBoundingClientRect().width*.9);span.textContent='.'.repeat(Math.max(1,Math.floor(target/unit)));}
+  else span.textContent='.'.repeat(64);
+ });
+}
+function fitLines(root){if(!root)return;fitSignatureDots(root);ruleMemoLines(root);root.querySelectorAll('.fitLine').forEach(box=>{const span=box.querySelector('span');if(!span)return;span.style.transform='';span.style.display='inline-block';const width=box.clientWidth;if(width&&span.offsetWidth>width)span.style.transform=`scaleX(${width/span.offsetWidth})`;});}
 function initV70(){
 $('doc_position').parentElement.insertAdjacentHTML('afterend',input('positionShort','ตำแหน่งย่อที่ต้องการแสดง เช่น หัวหน้างานประกันคุณภาพฯ'));
 $('docForm').insertAdjacentHTML('beforeend',`<details><summary>การจัดวางและผู้ลงนามเพิ่มเติม</summary><input type="hidden" id="doc_signatureAlign" value="right"><p class="muted">ผู้ลงนามหลักอยู่ในช่องด้านบน เพิ่มผู้ลงนามได้ตามจริง ส่วนผู้ผ่านงานและผู้บริหารเลือกแยกต่างหาก ตำแหน่งจะบีบแนวนอนให้อยู่บรรทัดเดียว ช่องข้อความย่อแก้เองได้โดยไม่เปลี่ยนชื่อตำแหน่งเต็ม</p><input id="doc_extraSigners" type="hidden" value="[]"><div id="extraSignerEditor"></div><button type="button" class="btn light" id="addSigner">+ เพิ่มผู้ลงนาม</button></details><details id="aiPanel"><summary>คำสั่ง AI ตามเอกสารที่เลือก</summary><label>ต้องการร่างอะไร<select id="aiTarget"><option value="main">ตัวหนังสือหลัก</option>${Object.entries(attachmentTemplates).map(([k,t])=>`<option value="${k}">${t.name}</option>`).join('')}</select></label><label>รายละเอียดเพิ่มเติม เช่น วัน เวลา สถานที่ ข้อเท็จจริง<textarea id="aiFacts"></textarea></label><button type="button" class="btn light" id="buildPrompt">สร้าง / อัปเดตคำสั่ง</button><label>คำสั่งที่จะส่งให้ AI (แก้ไขได้)<textarea id="aiPrompt" style="min-height:260px"></textarea></label><div class="actions"><button type="button" class="btn light" id="copyPrompt">คัดลอกคำสั่ง</button><button type="button" class="btn primary" id="openPrompt">เปิด ChatGPT พร้อมคำสั่งนี้</button></div><p id="aiStatus" role="status">ถ้า ChatGPT ไม่เติมคำสั่งให้ ให้วางข้อความที่คัดลอกไว้ในช่องสนทนา</p></details>`);
