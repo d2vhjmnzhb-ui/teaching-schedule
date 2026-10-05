@@ -9,11 +9,11 @@ const uuid=()=>crypto.randomUUID?crypto.randomUUID():'doc'+Date.now()+Math.rando
 function persist(next){if(readFailed){alert('ข้อมูลเดิมอ่านไม่ได้ จึงไม่สามารถบันทึกทับได้');return false;}try{localStorage.setItem(KEY,JSON.stringify(next));drafts=next;return true;}catch(e){alert('บันทึกไม่สำเร็จ พื้นที่จัดเก็บอาจเต็ม กรุณาสำรองข้อมูล');return false;}}
 function render(){const q=$('docSearch').value.trim().toLowerCase(),type=$('docFilter').value;const rows=drafts.filter(d=>(type==='all'||d.type===type)&&[d.subject,d.number,d.recipient].join(' ').toLowerCase().includes(q)).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));$('docList').innerHTML=rows.length?'<table><thead><tr><th>ประเภท</th><th>เลขหนังสือ</th><th>เรื่อง / ผู้รับ</th><th>แก้ไขล่าสุด</th><th>จัดการ</th></tr></thead><tbody>'+rows.map(d=>`<tr><td>${label(d.type)}</td><td>${esc(d.number)||'—'}</td><td><b>${esc(d.subject)}</b><br>${esc(d.recipient)}</td><td>${esc(new Date(d.updatedAt).toLocaleString('th-TH'))}</td><td><button class="btn light" data-edit="${esc(d.id)}">เปิด / แก้ไข</button> <button class="btn light" data-copy="${esc(d.id)}">ทำสำเนา</button> <button class="btn light" data-delete="${esc(d.id)}">ลบ</button></td></tr>`).join('')+'</tbody></table>':'<p class="muted">ยังไม่มีฉบับร่างที่ตรงกับรายการนี้</p>';}
 function leave(){return !dirty||confirm('มีข้อมูลที่ยังไม่ได้บันทึก ต้องการทิ้งการแก้ไขหรือไม่?');}
-function open(d){if(!leave())return;if(!['TH Sarabun New','TH SarabunIT๙','TH SarabunPSK'].includes(d.font))d={...d,font:'TH Sarabun New',fontSize:'16'};d={...d,signatureAlign:'right',directorPosition:d.directorPosition||'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง',deputyPosition:d.deputyPosition||('รองผู้อำนวยการ'+(d.division||'ฝ่ายบริหารทรัพยากร'))};current={...d};fields.forEach(k=>$( 'doc_'+k).value=d[k]||({font:'TH Sarabun New',digits:'thai',enclosures:'[]',fontSize:'16',extraSigners:'[]',signatureAlign:'right',purpose:'approve'}[k]||''));$('docEditorTitle').textContent=label(d.type)+' • ฉบับร่าง';$('docPrint').textContent=d.type==='external'?'พิมพ์ 3 ชุด / บันทึก PDF':'พิมพ์ / บันทึก PDF';$('docEditor').hidden=false;$('docStatus').textContent='กรอกข้อมูลแล้วกดบันทึกฉบับร่าง';dirty=false;syncSimpleForm();renderExtraSigners();refreshPreview();$('docEditor').scrollIntoView({behavior:'smooth',block:'start'});}
+function open(d){if(!leave())return;if(!['TH Sarabun New','TH SarabunIT๙','TH SarabunPSK'].includes(d.font))d={...d,font:'TH Sarabun New',fontSize:'16'};d={...d,signatureAlign:'right',directorPosition:d.directorPosition||'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง',deputyPosition:d.deputyPosition||('รองผู้อำนวยการ'+(d.division||'ฝ่ายบริหารทรัพยากร'))};current={...d};fields.forEach(k=>$( 'doc_'+k).value=d[k]||({font:'TH Sarabun New',digits:'thai',enclosures:'[]',fontSize:'16',extraSigners:'[]',signatureAlign:'right',purpose:'approve'}[k]||''));$('docEditorTitle').textContent=label(d.type)+' • ฉบับร่าง';$('docPrint').textContent=d.type==='external'?'พิมพ์ 3 ชุด / บันทึก PDF':'พิมพ์ / บันทึก PDF';if($('docPrintTop'))$('docPrintTop').textContent=$('docPrint').textContent;$('docEditor').hidden=false;$('docStatus').textContent='กรอกข้อมูลแล้วกดบันทึกฉบับร่าง';dirty=false;syncSimpleForm();renderExtraSigners();refreshPreview();$('docEditor').scrollIntoView({behavior:'smooth',block:'start'});}
 function fresh(type){const now=new Date();open({id:uuid(),type,date:`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,...defaults(),signatureAlign:'right',agency:'วิทยาลัยเทคนิคปากช่อง',recipient:type==='internal'?'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง':'',closing:type==='internal'?'จึงเรียนมาเพื่อโปรดพิจารณาอนุญาต':'จึงเรียนมาเพื่อโปรดพิจารณา',salutation:type==='external'?'ขอแสดงความนับถือ':''});}
 $('docNewInternal').onclick=()=>fresh('internal');$('docNewExternal').onclick=()=>fresh('external');
 $('docForm').oninput=()=>{dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก';};
-$('docForm').onsubmit=e=>{e.preventDefault();if(!current)return;const d={...current};fields.forEach(k=>d[k]=$('doc_'+k).value.trim());if(!d.subject){$('docStatus').textContent='กรุณากรอกเรื่องก่อนบันทึก';$('doc_subject').focus();return;}d.updatedAt=new Date().toISOString();d.createdAt=d.createdAt||d.updatedAt;if(persist([...drafts.filter(x=>x.id!==d.id),d])){current=d;dirty=false;render();$('docStatus').textContent='บันทึกฉบับร่างเรียบร้อยแล้ว';}};
+$('docForm').onsubmit=e=>{e.preventDefault();saveDraft();};
 $('docClose').onclick=()=>{if(leave()){dirty=false;current=null;$('docEditor').hidden=true;}};
 $('docSearch').oninput=render;$('docFilter').onchange=render;
 $('docList').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.edit||b.dataset.copy||b.dataset.delete,d=drafts.find(x=>x.id===id);if(!d)return;if(b.dataset.edit)open(d);else if(b.dataset.copy)open({...d,id:uuid(),number:'',subject:d.subject+' (สำเนา)',createdAt:null});else if(confirm('ลบฉบับร่าง “'+d.subject+'” หรือไม่?')){if(current?.id===id&&!leave())return;if(persist(drafts.filter(x=>x.id!==id))){if(current?.id===id){dirty=false;current=null;$('docEditor').hidden=true;}render();}}};
@@ -52,6 +52,43 @@ if(document.fonts)document.fonts.ready.then(()=>{fitLines($('docPreview'));fitPa
 if(window.ResizeObserver)new ResizeObserver(fitPaper).observe($('docPreview'));
 }
 function fitPaper(){const preview=$('docPreview');if(!preview||!preview.clientWidth)return;const width=preview.clientWidth-32;const scale=Math.min(1,Math.max(.25,width/(210*96/25.4)));preview.querySelectorAll('.docPaper').forEach(p=>p.style.zoom=scale);}
+function toast(msg,bad){
+ let t=$('docToast');if(!t){t=document.createElement('div');t.id='docToast';t.setAttribute('role','status');document.body.appendChild(t);}
+ t.textContent=msg;t.className=bad?'bad show':'show';clearTimeout(t._h);t._h=setTimeout(()=>{t.className=bad?'bad':'';},bad?7000:2800);
+}
+function flashSave(){
+ document.querySelectorAll('#docForm button[type=submit],#docSaveTop').forEach(b=>{if(!b.dataset.t)b.dataset.t=b.textContent;b.textContent='บันทึกแล้ว ✓';clearTimeout(b._f);b._f=setTimeout(()=>{b.textContent=b.dataset.t;},2200);});
+}
+function saveFailed(msg,d){
+ $('docStatus').textContent=msg;toast(msg,true);
+ try{if(d){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify({format:KEY,drafts:[d]},null,2)],{type:'application/json'}));a.href=u;a.download='draft-'+fileTitle()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}}catch(e){}
+}
+function saveDraft(){
+ if(!current){toast('ยังไม่ได้เปิดแบบร่าง',true);return false;}
+ let d=null;
+ try{
+  d={...current};fields.forEach(k=>{const el=$('doc_'+k);d[k]=el?String(el.value||'').trim():String(d[k]||'');});
+  if(!d.subject){$('docStatus').textContent='กรุณากรอกเรื่องก่อนบันทึก';toast('กรุณากรอกเรื่องก่อนบันทึก',true);$('doc_subject').focus();return false;}
+  d.updatedAt=new Date().toISOString();d.createdAt=d.createdAt||d.updatedAt;
+  if(!persist([...drafts.filter(x=>x.id!==d.id),d])){saveFailed('บันทึกไม่สำเร็จ ระบบดาวน์โหลดไฟล์สำรองของฉบับนี้ให้แล้ว',d);return false;}
+  const back=JSON.parse(localStorage.getItem(KEY)||'[]');
+  if(!back.some(x=>x.id===d.id&&x.updatedAt===d.updatedAt))throw new Error('อ่านกลับไม่พบข้อมูลที่เพิ่งบันทึก');
+  current=d;dirty=false;
+  try{render();}catch(e){console.error(e);}
+  const time=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  $('docStatus').textContent='บันทึกฉบับร่างเรียบร้อยแล้ว';toast('บันทึกฉบับร่างเรียบร้อยแล้ว ✓ ('+time+')');flashSave();
+  return true;
+ }catch(error){console.error(error);saveFailed('บันทึกไม่สำเร็จ: '+(error&&error.message||error),d);return false;}
+}
+function initTopActions(){
+ const style=document.createElement('style');
+ style.textContent='#documentsPage{padding-bottom:130px}#docEditor .actions,#docEditor details{scroll-margin-bottom:120px}.docTopActions{margin:6px 0 14px}#docToast{position:fixed;left:50%;top:14px;transform:translate(-50%,-30px);opacity:0;pointer-events:none;z-index:5000;background:#176c72;color:#fff;padding:14px 22px;border-radius:12px;font-size:17px;line-height:1.4;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.28);max-width:calc(100% - 32px);text-align:center;transition:opacity .2s,transform .2s}#docToast.show{opacity:1;transform:translate(-50%,0)}#docToast.bad{background:#b3261e}';
+ document.head.appendChild(style);
+ $('docEditorTitle').insertAdjacentHTML('afterend','<div class="actions docTopActions"><button type="button" class="btn primary" id="docSaveTop">บันทึกฉบับร่าง</button><button type="button" class="btn light" id="docPrintTop"></button></div>');
+ $('docPrintTop').textContent=$('docPrint').textContent;
+ $('docSaveTop').onclick=()=>$('docForm').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+ $('docPrintTop').onclick=()=>printDocument();
+}
 function fileTitle(){
  /* ชื่อไฟล์ PDF = ชื่อเรื่องของหนังสือ (ตัดอักขระที่ใช้เป็นชื่อไฟล์ไม่ได้) */
  const t=String(val('subject')||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().replace(/^\.+/,'').slice(0,120).trim();
@@ -200,6 +237,6 @@ function initSimpleForm(){
  $('docForm').addEventListener('submit',()=>{if(current&&val('subject')){const msg=$('docStatus').textContent;$('saveDocDefaults').click();$('docStatus').textContent=msg;}});
 }
 
-initStudio();initV70();initSimpleForm();
+initStudio();initV70();initSimpleForm();initTopActions();
 render();
 })();
