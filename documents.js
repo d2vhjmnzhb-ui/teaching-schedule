@@ -128,7 +128,7 @@ function buildPrintHtml(title){
  }
  const code=[fitSignatureDots,fitLines,ruleMemoLines,positionDraftChecks,ensurePaperFonts,popupBoot].map(f=>f.toString()).join('\n')+'\npopupBoot();';
  const hint='iPad: แตะปุ่ม → เลือก “พิมพ์” → บีบนิ้วขยายตัวอย่างหน้า → แตะปุ่มแชร์ → “บันทึกลงไฟล์”';
- return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><script src="vendor/html2canvas.min.js"></script><script src="vendor/pdf-lib.min.js"></script><script src="document-pdf.js?v=89"></script><link rel="stylesheet" href="document-paper.css?v=89"></head><body class="document-only"><div class="printTools"><button id="downloadDocumentPdf" type="button">ดาวน์โหลด PDF</button><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
+ return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><script src="vendor/html2canvas.min.js"></script><script src="vendor/pdf-lib.min.js"></script><script src="document-pdf.js?v=90"></script><link rel="stylesheet" href="document-paper.css?v=90"></head><body class="document-only"><div class="printTools"><button id="downloadDocumentPdf" type="button">ดาวน์โหลด PDF</button><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
 }
 function printInFrame(html,title){
  /* ทางสำรองเมื่อเบราว์เซอร์บล็อกป๊อปอัป: พิมพ์จากเฟรมซ่อนในหน้าเดิม ชื่อไฟล์ใช้ชื่อหน้าเว็บชั่วคราว */
@@ -179,13 +179,16 @@ async function ensurePaperFonts(doc){
 // Vector contours avoid font substitution and small-glyph grid fitting for signature guides.
 function signatureDots(extra=''){
  const glyph='M115 28Q115 14 104.5 4Q94 -6 80 -6Q66 -6 56 4Q46 14 46 28Q46 42 56 52.5Q66 63 80 63Q94 63 104.5 52.5Q115 42 115 28Z';
- const paths=Array.from({length:110},(_,i)=>`<path transform="translate(${i*162} 0)" d="${glyph}"/>`).join('');
+ const paths=Array.from({length:110},(_,i)=>`<path transform="translate(${i*162+80} 28) scale(1.284) translate(-80 -28)" d="${glyph}"/>`).join('');
  return `<svg class="signatureDots ${extra}" xmlns="http://www.w3.org/2000/svg" aria-label="เส้นจุดสำหรับลงนาม" height="1em" width="60mm" viewBox="0 0 11000 1000" preserveAspectRatio="xMinYMid meet"><g fill="currentColor" transform="translate(0 850) scale(1 -1)">${paths}</g></svg>`;
 }
 function fitSignatureDots(root){
  root.querySelectorAll('svg.signatureDots').forEach(svg=>{
   const width=svg.clientWidth,size=parseFloat(svg.ownerDocument.defaultView.getComputedStyle(svg).fontSize);
-  if(width&&size)svg.setAttribute('viewBox',`0 0 ${width/size*1000} 1000`);
+  if(width&&size){svg.setAttribute('viewBox',`0 0 ${width/size*1000} 1000`);
+   const dotScale=(.5*96/25.4)/(size*69/1000);
+   svg.querySelectorAll('path').forEach((path,i)=>path.setAttribute('transform',`translate(${i*162+80} 28) scale(${dotScale}) translate(-80 -28)`));
+  }
  });
 }
 function fitLines(root){if(!root)return;fitSignatureDots(root);ruleMemoLines(root);root.querySelectorAll('.fitLine').forEach(box=>{const span=box.querySelector('span');if(!span)return;span.style.transform='';span.style.display='inline-block';const width=box.clientWidth;if(width&&span.offsetWidth>width)span.style.transform=`scaleX(${width/span.offsetWidth})`;});}
