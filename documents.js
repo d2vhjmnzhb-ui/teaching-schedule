@@ -43,32 +43,75 @@ $('attachmentEditors').oninput=e=>{const i=+e.target.dataset.index,k=e.target.da
 $('attachmentEditors').onclick=e=>{const b=e.target.closest('[data-remove]');if(!b)return;const list=enclosures();list.splice(+b.dataset.remove,1);$('doc_enclosures').value=JSON.stringify(list);changed()};
 $('docAI').onclick=async()=>{const d=collect();const prompt=`ช่วยร่าง${label(current.type)}ของ${d.agency} เรื่อง ${d.subject||'[ระบุเรื่อง]'}\nเรียน ${d.recipient}\nงาน ${d.department} ฝ่าย ${d.division}\nข้อมูลที่มี: ${d.body}\nประโยคลงท้ายที่ต้องการ: ${d.closing}\nขอเฉพาะเนื้อหา 2–3 ย่อหน้า ไม่รวมส่วนหัว ประโยคลงท้าย และลายเซ็น ไม่แต่งข้อเท็จจริง ตัวเลข หรือข้อกฎหมายที่ไม่ได้ให้ ถ้าขาดข้อมูลใช้ [ระบุข้อมูล] ใช้ภาษาราชการเหมาะสม ไม่ใช้ Markdown ถ้ามีตารางคั่นด้วย | แยกไว้ท้ายคำตอบ เพื่อคัดลอกลงช่องตาราง`;const w=window.open('https://chatgpt.com/','_blank');try{await navigator.clipboard.writeText(prompt);$('docStatus').textContent='คัดลอกคำสั่งแล้ว ให้วางใน AI แล้วนำคำตอบมาวางในช่องเนื้อหา'+(!w?' • หากหน้าต่างไม่เปิด ให้เปิด chatgpt.com เอง':'')}catch{window.prompt('คัดลอกคำสั่งนี้ไปวางใน AI',prompt)}};
 $('docPrint').onclick=printDocument;
-window.addEventListener('beforeprint',()=>{if($('documentsPage').classList.contains('active')&&current)document.body.classList.add('printing-doc')});
-window.addEventListener('afterprint',()=>document.body.classList.remove('printing-doc'));
+let titleBeforePrint=null;
+window.addEventListener('beforeprint',()=>{if($('documentsPage').classList.contains('active')&&current){document.body.classList.add('printing-doc');if(titleBeforePrint===null){titleBeforePrint=document.title;document.title=fileTitle();}}});
+window.addEventListener('afterprint',()=>{document.body.classList.remove('printing-doc');if(titleBeforePrint!==null){document.title=titleBeforePrint;titleBeforePrint=null;}});
 window.addEventListener('resize',()=>{fitLines($('docPreview'));fitPaper()});
 if(document.fonts)document.fonts.addEventListener('loadingdone',()=>{fitLines($('docPreview'));fitPaper()});
 if(document.fonts)document.fonts.ready.then(()=>{fitLines($('docPreview'));fitPaper()});
 if(window.ResizeObserver)new ResizeObserver(fitPaper).observe($('docPreview'));
 }
 function fitPaper(){const preview=$('docPreview');if(!preview||!preview.clientWidth)return;const width=preview.clientWidth-32;const scale=Math.min(1,Math.max(.25,width/(210*96/25.4)));preview.querySelectorAll('.docPaper').forEach(p=>p.style.zoom=scale);}
-function printDocument(){
-renderPaper();fitLines($('docPreview'));const w=window.open('','_blank');if(!w){alert('กรุณาอนุญาตหน้าต่างป๊อปอัปเพื่อเปิดหน้าพิมพ์เอกสาร');return;}
-const base=new URL('.',location.href).href,copy=$('docPreview').cloneNode(true);copy.querySelectorAll('.docPaper').forEach(p=>p.style.removeProperty('zoom'));
-if(current?.type==='external'){
- const pages=[...copy.children];copy.replaceChildren();
- ['working','original','copy'].forEach(kind=>{pages.forEach((page,index)=>{const clone=page.cloneNode(true);clone.dataset.printSet=kind;
- if(index===0&&kind==='working'){clone.classList.add('workingLetter');clone.insertAdjacentHTML('beforeend','<div class="draftChecks"><span>ร่าง................</span><span>พิมพ์................</span><span>ตรวจ................</span></div>')}
- if(index===0&&kind==='copy'){const head=clone.querySelector('.externalHead');if(head)head.innerHTML='<div class="copyHeading">สำเนา</div>'}
- copy.appendChild(clone);
- });});
+function fileTitle(){
+ /* ชื่อไฟล์ PDF = ชื่อเรื่องของหนังสือ (ตัดอักขระที่ใช้เป็นชื่อไฟล์ไม่ได้) */
+ const t=String(val('subject')||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().replace(/^\.+/,'').slice(0,120).trim();
+ return t||'หนังสือราชการ';
 }
-
-w.document.open();w.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(val('subject')||'หนังสือราชการ')+'</title><link rel="stylesheet" href="document-paper.css?v=84"></head><body class="document-only"><div class="printTools"><button id="printReadyButton" disabled>พิมพ์ / บันทึก PDF</button><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p></div>'+copy.outerHTML+'</body></html>');
-w.addEventListener('load',async()=>{
- const button=w.document.getElementById('printReadyButton');
- const readyPrint=async()=>{button.disabled=true;try{await ensurePaperFonts(w.document);await Promise.all([...w.document.images].map(img=>img.decode?img.decode().catch(()=>{}):Promise.resolve()));fitLines(w.document);ruleMemoLines(w.document);positionDraftChecks(w.document);w.focus();w.print();}catch(error){w.alert('โหลดฟอนต์เอกสารไม่สำเร็จ กรุณาตรวจการเชื่อมต่อและอัปโหลดโฟลเดอร์ fonts ให้ครบ แล้วกดพิมพ์อีกครั้ง');}finally{button.disabled=false;}};
- button.onclick=readyPrint;await readyPrint();
-},{once:true});w.document.close();
+const within=(promise,ms)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),ms))]);
+async function preparePaper(doc){
+ let fontsOk=true;
+ try{await within(ensurePaperFonts(doc),6000);}catch(error){fontsOk=false;}
+ try{await within(Promise.all([...doc.images].map(img=>img.decode?img.decode().catch(()=>{}):Promise.resolve())),3000);}catch(error){}
+ try{fitLines(doc);ruleMemoLines(doc);positionDraftChecks(doc);}catch(error){console.error('จัดหน้าเอกสารไม่สำเร็จ',error);}
+ return fontsOk;
+}
+async function printWindow(win,button){
+ if(win.__printing||win.closed)return;
+ win.__printing=true;if(button)button.disabled=true;
+ try{
+  const fontsOk=await preparePaper(win.document);
+  if(win.closed)return;
+  if(!fontsOk&&!win.confirm('โหลดฟอนต์เอกสารไม่ครบ ตัวอักษรอาจไม่ตรงแบบ (ตรวจว่าอัปโหลดโฟลเดอร์ fonts ครบ)\n\nต้องการพิมพ์ / บันทึก PDF ต่อหรือไม่?'))return;
+  win.focus();win.print();
+ }catch(error){console.error(error);try{win.alert('พิมพ์ไม่สำเร็จ กรุณากดปุ่มพิมพ์อีกครั้ง');}catch(e){}}
+ finally{win.__printing=false;if(button)button.disabled=false;}
+}
+function whenLoaded(win,fn){
+ let ran=false;const run=()=>{if(ran)return;ran=true;fn();};
+ if(win.document.readyState==='complete')setTimeout(run,0);else win.addEventListener('load',run,{once:true});
+ setTimeout(()=>{if(!win.closed)run();},3000);
+}
+function buildPrintHtml(title){
+ const base=new URL('.',location.href).href,copy=$('docPreview').cloneNode(true);copy.querySelectorAll('.docPaper').forEach(p=>p.style.removeProperty('zoom'));
+ if(current?.type==='external'){
+  const pages=[...copy.children];copy.replaceChildren();
+  ['working','original','copy'].forEach(kind=>{pages.forEach((page,index)=>{const clone=page.cloneNode(true);clone.dataset.printSet=kind;
+   if(index===0&&kind==='working'){clone.classList.add('workingLetter');clone.insertAdjacentHTML('beforeend','<div class="draftChecks"><span>ร่าง................</span><span>พิมพ์................</span><span>ตรวจ................</span></div>')}
+   if(index===0&&kind==='copy'){const head=clone.querySelector('.externalHead');if(head)head.innerHTML='<div class="copyHeading">สำเนา</div>'}
+   copy.appendChild(clone);
+  });});
+ }
+ return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><link rel="stylesheet" href="document-paper.css?v=85"></head><body class="document-only"><div class="printTools"><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p></div>'+copy.outerHTML+'</body></html>';
+}
+function printInFrame(html,title){
+ /* ทางสำรองเมื่อเบราว์เซอร์บล็อกป๊อปอัป: พิมพ์จากเฟรมซ่อนในหน้าเดิม ชื่อไฟล์ใช้ชื่อหน้าเว็บชั่วคราว */
+ const frame=document.createElement('iframe'),previous=document.title;
+ frame.setAttribute('aria-hidden','true');frame.style.cssText='position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0';
+ document.body.appendChild(frame);
+ const w=frame.contentWindow;w.document.open();w.document.write(html);w.document.close();
+ document.title=title;
+ const done=()=>{document.title=previous;frame.remove();};
+ w.addEventListener('afterprint',done,{once:true});
+ setTimeout(done,600000);
+ whenLoaded(w,()=>printWindow(w,null));
+}
+function printDocument(){
+renderPaper();fitLines($('docPreview'));
+const title=fileTitle(),html=buildPrintHtml(title),w=window.open('','_blank');
+if(!w){printInFrame(html,title);return;}
+w.document.open();w.document.write(html);w.document.close();
+const button=w.document.getElementById('printReadyButton');if(button)button.onclick=()=>printWindow(w,button);
+whenLoaded(w,()=>printWindow(w,button));
 }
 function positionDraftChecks(doc){doc.querySelectorAll('.draftChecks').forEach(footer=>{footer.style.marginTop='12mm';const paper=footer.closest('.docPaper'),win=doc.defaultView,style=win.getComputedStyle(paper),contentTop=paper.getBoundingClientRect().top+parseFloat(style.paddingTop),used=footer.getBoundingClientRect().top-contentTop,footerHeight=footer.getBoundingClientRect().height,area=262*96/25.4;if(used+footerHeight<area)footer.style.marginTop=(12*96/25.4+area-used-footerHeight-2)+'px';});}
 function changed(){dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก'}
@@ -154,7 +197,7 @@ function initSimpleForm(){
  $('doc_font').onchange=()=>{if(val('font')==='TH SarabunIT๙')$('doc_digits').value='thai';changed()};
  $('doc_digits').onchange=()=>{if(val('digits')==='arabic'&&val('font')==='TH SarabunIT๙')$('doc_font').value='TH Sarabun New';changed()};
  $('doc_purpose').onchange=()=>{const lines={approve:'จึงเรียนมาเพื่อโปรดพิจารณาอนุญาต',inform:'จึงเรียนมาเพื่อโปรดทราบ',invite:'จึงเรียนมาเพื่อโปรดเข้าร่วมประชุมตามวัน เวลา และสถานที่ดังกล่าว',cooperate:'จึงเรียนมาเพื่อโปรดพิจารณาให้ความอนุเคราะห์',minutes:'จึงเรียนมาเพื่อโปรดทราบ',report:'จึงเรียนมาเพื่อโปรดทราบ'};$('doc_closing').value=lines[val('purpose')]||lines.approve;changed()};
- $('docForm').addEventListener('submit',()=>{if(current&&val('subject'))$('saveDocDefaults').click()});
+ $('docForm').addEventListener('submit',()=>{if(current&&val('subject')){const msg=$('docStatus').textContent;$('saveDocDefaults').click();$('docStatus').textContent=msg;}});
 }
 
 initStudio();initV70();initSimpleForm();
