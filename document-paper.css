@@ -60,3 +60,26 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 /* v84: explicit selected face, natural dot glyphs; no glyph stretching. */
 .docPaper .signatureDots{font-family:var(--paper-font)!important;font-size:var(--paper-size,16pt)!important;font-weight:400!important;font-style:normal;font-synthesis:none;line-height:1.2;transform:none!important;flex:none}
 .docPaper .signature .fitLine{min-height:1.2em;line-height:1.2}
+/* v91: physical page typography; prevent mobile text inflation and synthetic bold. */
+.docPaper,.docPaper *{-webkit-text-size-adjust:100%;text-size-adjust:100%;font-synthesis:none}
+.docPaper{font-weight:400;font-style:normal}
+.docPaper p,.docPaper .signature,.docPaper .opinions,.docPaper .planOpinions{font-weight:400}
+.docPaper .memoLine b{font-size:18pt}
+.docPaper.lessonPlanPaper{padding-top:12mm}
+.docPaper.lessonPlanPaper .memoHead{height:18mm;margin-bottom:1mm}
+.docPaper.lessonPlanPaper .memoHead h1{font-size:26pt;line-height:32pt;top:5mm}
+.docPaper.lessonPlanPaper .memoLine{line-height:21pt;min-height:21pt}
+.docPaper.lessonPlanPaper .agencyLine.fitLine{height:21pt}
+.docPaper.lessonPlanPaper .bodyText p{margin-bottom:4pt}
+.docPaper.lessonPlanPaper .signerStack>.signature{width:52%;margin:2mm 0 3mm auto}
+.docPaper .planOpinions{display:grid;grid-template-columns:1fr 1fr;gap:7mm 10mm;margin-top:5mm}
+.docPaper .planOpinion{break-inside:avoid;min-width:0}
+.docPaper .planOpinion:last-child{grid-column:1 / -1;width:64%;justify-self:center}
+.docPaper .opinionTitle{line-height:1.1}
+.docPaper .opinionChoices{white-space:nowrap;margin-top:2mm;text-align:center}
+.docPaper .opinionRule{height:6mm;border-bottom:.5pt dotted #333;width:86%;margin:auto}
+.docPaper .planOpinion .signature{width:100%;margin:4mm 0 0}
+.docPaper .planOpinion .signatureSpace{height:11mm}
+.docPaper .planOpinion svg.signatureDots{width:36mm}
+.docPaper .planOpinion svg.signatureNameDots{width:36mm}
+@media print{.document-only .docPaper.lessonPlanPaper{padding-top:12mm!important}}
