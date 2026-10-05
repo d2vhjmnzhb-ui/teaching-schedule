@@ -10,3 +10,5 @@
 #docForm>label:has(#doc_body){display:block;margin-top:18px}
 #docForm .grid:empty{display:none}
 #docPerson{margin-bottom:8px}
+
+.paragraphControl{padding:12px;margin:10px 0;border:1px solid #d5e1eb;border-radius:10px}.paragraphControl p{margin:6px 0;color:#536476}

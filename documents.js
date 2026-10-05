@@ -1,6 +1,6 @@
 /* Document drafts have a dedicated store; no timetable or textbook writes. */
 (()=>{'use strict';
-const KEY='college_document_drafts_v1', $=id=>document.getElementById(id), fields=['number','date','agency','phone','subject','recipient','reference','attachments','signer','position','body','notes','department','division','font','digits','closing','salutation','address','reviewer','reviewerPosition','deputy','deputyPosition','director','directorPosition','opinions','table','enclosures','fontSize','extraSigners','signatureAlign','positionShort','purpose'];
+const KEY='college_document_drafts_v1', $=id=>document.getElementById(id), fields=['number','date','agency','phone','subject','recipient','reference','attachments','signer','position','body','notes','department','division','font','digits','closing','salutation','address','reviewer','reviewerPosition','deputy','deputyPosition','director','directorPosition','opinions','table','enclosures','fontSize','extraSigners','signatureAlign','positionShort','purpose','paragraphStyles'];
 let drafts=[],current=null,dirty=false,readFailed=false;
 try{const raw=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(raw))throw Error();drafts=raw;}catch(e){readFailed=true;alert('อ่านข้อมูลฉบับร่างไม่ได้ ระบบจะไม่เขียนทับข้อมูลเดิม กรุณาเก็บข้อมูลเบราว์เซอร์ไว้');}
 const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -12,7 +12,7 @@ function leave(){return !dirty||confirm('มีข้อมูลที่ยั
 function open(d){if(!leave())return;if(!['TH Sarabun New','TH SarabunIT๙','TH SarabunPSK'].includes(d.font))d={...d,font:'TH Sarabun New',fontSize:'16'};d={...d,signatureAlign:'right',directorPosition:d.directorPosition||'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง',deputyPosition:d.deputyPosition||('รองผู้อำนวยการ'+(d.division||'ฝ่ายบริหารทรัพยากร'))};current={...d};fields.forEach(k=>$( 'doc_'+k).value=d[k]||({font:'TH Sarabun New',digits:'thai',enclosures:'[]',fontSize:'16',extraSigners:'[]',signatureAlign:'right',purpose:'approve'}[k]||''));$('docEditorTitle').textContent=label(d.type)+' • ฉบับร่าง';$('docPrint').textContent=d.type==='external'?'พิมพ์ 3 ชุด / บันทึก PDF':'พิมพ์ / บันทึก PDF';if($('docPrintTop'))$('docPrintTop').textContent=$('docPrint').textContent;$('docEditor').hidden=false;$('docStatus').textContent='กรอกข้อมูลแล้วกดบันทึกฉบับร่าง';dirty=false;syncSimpleForm();renderExtraSigners();refreshPreview();$('docEditor').scrollIntoView({behavior:'smooth',block:'start'});}
 function fresh(type){const now=new Date();open({id:uuid(),type,date:`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,...defaults(),signatureAlign:'right',agency:'วิทยาลัยเทคนิคปากช่อง',recipient:type==='internal'?'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง':'',closing:type==='internal'?'จึงเรียนมาเพื่อโปรดพิจารณาอนุญาต':'จึงเรียนมาเพื่อโปรดพิจารณา',salutation:type==='external'?'ขอแสดงความนับถือ':''});}
 $('docNewInternal').onclick=()=>fresh('internal');$('docNewExternal').onclick=()=>fresh('external');
-$('docForm').oninput=()=>{dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก';};
+$('docForm').oninput=event=>{if(event.target.dataset.format)return;if(event.target.id==='doc_body')renderParagraphControls();dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก';};
 $('docForm').onsubmit=e=>{e.preventDefault();saveDraft();};
 $('docClose').onclick=()=>{if(leave()){dirty=false;current=null;$('docEditor').hidden=true;}};
 $('docSearch').oninput=render;$('docFilter').onchange=render;
@@ -97,6 +97,7 @@ function fileTitle(){
 function popupBoot(){
  /* ฟังก์ชันนี้ถูกฝังไปรันในหน้าต่างพิมพ์เอง ไม่พึ่งหน้าหลัก (iPad พักหน้าหลักไว้เบื้องหลังเมื่อเปิดแท็บใหม่) */
  var btn=document.getElementById('printReadyButton'),st=document.getElementById('printStatus');
+ var download=document.getElementById('downloadDocumentPdf');if(download)download.onclick=function(){layout();window.downloadCollegePdf(document.title);};
  var ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
  var inFrame=window.self!==window.top;
  function say(t){if(st)st.textContent=t;}
@@ -112,7 +113,7 @@ function popupBoot(){
   layout();
   say(fontsOk?(ios?'พร้อมแล้ว แตะปุ่มด้านบนเพื่อพิมพ์ / บันทึก PDF':'พร้อมพิมพ์'):'โหลดฟอนต์เอกสารไม่ครบ ตัวอักษรอาจไม่ตรงแบบ (ตรวจว่าอัปโหลดโฟลเดอร์ fonts ครบ) แตะปุ่มด้านบนหากต้องการพิมพ์ต่อ');
   if(btn)btn.disabled=false;
-  if(fontsOk&&(!ios||inFrame))setTimeout(doPrint,50);
+  if(fontsOk&&inFrame)setTimeout(doPrint,50);
  })();
 }
 function buildPrintHtml(title){
@@ -127,7 +128,7 @@ function buildPrintHtml(title){
  }
  const code=[fitSignatureDots,fitLines,ruleMemoLines,positionDraftChecks,ensurePaperFonts,popupBoot].map(f=>f.toString()).join('\n')+'\npopupBoot();';
  const hint='iPad: แตะปุ่ม → เลือก “พิมพ์” → บีบนิ้วขยายตัวอย่างหน้า → แตะปุ่มแชร์ → “บันทึกลงไฟล์”';
- return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><link rel="stylesheet" href="document-paper.css?v=85"></head><body class="document-only"><div class="printTools"><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
+ return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><script src="vendor/html2canvas.min.js"></script><script src="vendor/pdf-lib.min.js"></script><script src="document-pdf.js?v=89"></script><link rel="stylesheet" href="document-paper.css?v=89"></head><body class="document-only"><div class="printTools"><button id="downloadDocumentPdf" type="button">ดาวน์โหลด PDF</button><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
 }
 function printInFrame(html,title){
  /* ทางสำรองเมื่อเบราว์เซอร์บล็อกป๊อปอัป: พิมพ์จากเฟรมซ่อนในหน้าเดิม ชื่อไฟล์ใช้ชื่อหน้าเว็บชั่วคราว */
@@ -149,20 +150,20 @@ w.document.open();w.document.write(html);w.document.close();
 function positionDraftChecks(doc){doc.querySelectorAll('.draftChecks').forEach(footer=>{footer.style.marginTop='12mm';const paper=footer.closest('.docPaper'),win=doc.defaultView,style=win.getComputedStyle(paper),contentTop=paper.getBoundingClientRect().top+parseFloat(style.paddingTop),used=footer.getBoundingClientRect().top-contentTop,footerHeight=footer.getBoundingClientRect().height,area=262*96/25.4;if(used+footerHeight<area)footer.style.marginTop=(12*96/25.4+area-used-footerHeight-2)+'px';});}
 function changed(){dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก'}
 function enclosures(){try{const a=JSON.parse(val('enclosures')||'[]');return Array.isArray(a)?a.filter(x=>x&&typeof x==='object').map(x=>({title:String(x.title||''),body:String(x.body||''),table:String(x.table||'')})):[]}catch{return []}}
-function refreshPreview(){if(!$('docPreview'))return;const active=document.activeElement;if(!$('attachmentEditors').contains(active))$('attachmentEditors').innerHTML=enclosures().map((a,i)=>`<div class="attachmentCard"><div class="actions"><b>เอกสารแนบ ${i+1}</b><button type="button" class="btn light" data-remove="${i}">ลบ</button></div>${['title','body','table'].map((k)=>`<label>${{title:'ชื่อเอกสาร',body:'เนื้อหา',table:'ตาราง (ถ้ามี)'}[k]}<textarea data-index="${i}" data-field="${k}">${esc(a[k])}</textarea></label>`).join('')}</div>`).join('');renderPaper()}
+function refreshPreview(){if(!$('docPreview'))return;if(!$('paragraphControls')?.contains(document.activeElement))renderParagraphControls();const active=document.activeElement;if(!$('attachmentEditors').contains(active))$('attachmentEditors').innerHTML=enclosures().map((a,i)=>`<div class="attachmentCard"><div class="actions"><b>เอกสารแนบ ${i+1}</b><button type="button" class="btn light" data-remove="${i}">ลบ</button></div>${['title','body','table'].map((k)=>`<label>${{title:'ชื่อเอกสาร',body:'เนื้อหา',table:'ตาราง (ถ้ามี)'}[k]}<textarea data-index="${i}" data-field="${k}">${esc(a[k])}</textarea></label>`).join('')}</div>`).join('');renderPaper()}
 function renderPaper(){
 const d=collect(),thai=d.digits==='thai'||d.font==='TH SarabunIT๙',n=s=>String(s??'').replace(/[๐-๙]/g,c=>String('๐๑๒๓๔๕๖๗๘๙'.indexOf(c))).replace(/[0-9]/g,c=>thai?'๐๑๒๓๔๕๖๗๘๙'[+c]:c),e=s=>esc(n(s));
-const paras=(s,flow=false)=>String(s||'').replace(/\r\n?/g,'\n').split(flow?/\n[ \t]*\n+/:/\n/).filter(x=>x.trim()).map(p=>`<p>${e(flow?p.replace(/\n/g,' ').replace(/[ \t]+/g,' ').trim():p.trim())}</p>`).join('');
+const paras=(s,flow=false,editable=false)=>String(s||'').replace(/\r\n?/g,'\n').split(editable?/\n+/:flow?/\n[ \t]*\n+/:/\n/).filter(x=>x.trim()).map((p,i)=>`<p${editable?paragraphStyle(i):''}>${e(flow?p.replace(/\n/g,' ').replace(/[ \t]+/g,' ').trim():p.trim())}</p>`).join('');
 const table=s=>{if(!s.trim())return '';const rows=s.trim().split('\n').filter(x=>!/^\s*\|?\s*:?-{3}/.test(x)).map(x=>x.replace(/^\||\|$/g,'').split(/\t|\|/));return '<table class="paperTable"><thead><tr>'+rows[0].map(x=>'<th>'+e(x.trim())+'</th>').join('')+'</tr></thead><tbody>'+rows.slice(1).map(r=>'<tr>'+r.map(x=>'<td>'+e(x.trim())+'</td>').join('')+'</tr>').join('')+'</tbody></table>'};
 let date='';if(d.date){const parts=d.date.split('-').map(Number);if(parts.length===3)date=`${parts[2]} ${['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][parts[1]-1]} ${parts[0]+543}`;}
-const signature=(name,pos,short='')=>`<div class="signature"><div class="signatureSpace"><span class="signatureDots">............................................</span></div><div class="fitLine"><span>(${e(name)||'............................................'})</span></div><div class="fitLine positionLine"><span>${e(short||pos)}</span></div></div>`;
+const signature=(name,pos,short='')=>`<div class="signature"><div class="signatureSpace">${signatureDots()}</div><div class="fitLine"><span>(${e(name)||signatureDots('signatureNameDots')})</span></div><div class="fitLine positionLine"><span>${e(short||pos)}</span></div></div>`;
 let head=current?.type==='external'?`<div class="externalHead"><img src="garuda.png" alt="ตราครุฑ"></div><div class="letterRow"><span>ที่ ${e(d.number)||'........................'}</span><span>${e(d.agency)}<br>${e(d.address)}</span></div><p class="dateExternal">${e(date)}</p><p>เรื่อง ${e(d.subject)}</p>`:`<div class="memoHead"><img src="garuda.png" alt="ตราครุฑ"><h1>บันทึกข้อความ</h1></div><div class="memoLine agencyLine fitLine"><span><b>ส่วนราชการ</b> ${e([d.agency,d.department,d.division].filter(Boolean).join(' / '))} ${d.phone?'โทร. '+e(d.phone):''}</span></div><div class="letterRow memoLine"><span><b>ที่</b> ${e(d.number)}</span><span><b>วันที่</b> ${e(date)}</span></div><div class="memoLine subjectLine"><span><b>เรื่อง</b> ${e(d.subject)}</span></div>`;
 const at=enclosures();head+=`<p>เรียน ${e(d.recipient)}</p>`+(d.reference?`<p>อ้างถึง ${e(d.reference)}</p>`:'')+(d.attachments||at.length?`<p>สิ่งที่ส่งมาด้วย ${e(d.attachments||at.map((a,i)=>`${i+1}. ${a.title}`).join(' / '))}</p>`:'');
 const opinions=d.opinions==='yes'&&current?.type!=='external'?`<div class="opinions"><div>ความเห็นของรองผู้อำนวยการ<br>□ เพื่อโปรดทราบ<br>□ เพื่อโปรดพิจารณา<br>................................................${signature(d.deputy,d.deputyPosition||'รองผู้อำนวยการ'+(d.division||'ฝ่ายบริหารทรัพยากร'))}</div><div>ความเห็นของผู้อำนวยการ<br>□ ทราบ / อนุญาต / อนุมัติ<br>□ ไม่อนุญาต / ไม่อนุมัติ<br>................................................${signature(d.director,d.directorPosition||'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง')}</div></div>`:'';
 const font=['TH Sarabun New','TH SarabunIT๙','TH SarabunPSK'].includes(d.font)?d.font:'TH Sarabun New';
 $('docPreview').style.setProperty('--paper-size',(['14','15','16'].includes(d.fontSize)?d.fontSize:'14')+'pt');
 $('docPreview').style.setProperty('--paper-font',`"${font==='TH Sarabun New'?'Document Sarabun New':font}", sans-serif`);
-$('docPreview').innerHTML=`<article class="docPaper ${current?.type==='external'?'externalPaper':'internalPaper'}">${head}<div class="bodyText">${paras(d.body,true)}</div>${table(d.table)}<div class="bodyText">${paras(d.closing,true)}</div>${current?.type==='external'?`<p class="salutation">${e(d.salutation)}</p>`:''}<div class="signerStack alignRight">${signature(d.signer,d.position,d.positionShort)}${d.reviewer?signature(d.reviewer,d.reviewerPosition):''}${extraSigners().map(a=>signature(a.name,a.position,a.short)).join('')}</div>${opinions}${current?.type==='external'?`<p>${e(d.department)}<br>${d.phone?'โทร. '+e(d.phone):''}</p>`:''}</article>`+at.map(a=>`<article class="docPaper appendix"><h2>${e(a.title)}</h2>${paras(a.body)}${table(a.table||'')}</article>`).join('');
+$('docPreview').innerHTML=`<article class="docPaper ${current?.type==='external'?'externalPaper':'internalPaper'}">${head}<div class="bodyText">${paras(d.body,true,true)}</div>${table(d.table)}<div class="bodyText">${paras(d.closing,true)}</div>${current?.type==='external'?`<p class="salutation">${e(d.salutation)}</p>`:''}<div class="signerStack alignRight">${signature(d.signer,d.position,d.positionShort)}${d.reviewer?signature(d.reviewer,d.reviewerPosition):''}${extraSigners().map(a=>signature(a.name,a.position,a.short)).join('')}</div>${opinions}${current?.type==='external'?`<p>${e(d.department)}<br>${d.phone?'โทร. '+e(d.phone):''}</p>`:''}</article>`+at.map(a=>`<article class="docPaper appendix"><h2>${e(a.title)}</h2>${paras(a.body)}${table(a.table||'')}</article>`).join('');
 requestAnimationFrame(()=>{fitLines($('docPreview'));fitPaper();const long=[...$('docPreview').children].some(p=>p.scrollHeight>1124);$('paperWarning').textContent=long?'เนื้อหาบางฉบับเกิน 1 หน้า ระบบพิมพ์จะต่อหน้าอัตโนมัติ กรุณาตรวจจุดแบ่งหน้าในหน้าต่างพิมพ์ (A4, ขนาด 100%, ปิดหัว/ท้ายของเบราว์เซอร์)':'พิมพ์บน A4 • ขนาด 100% • ปิดหัว/ท้ายของเบราว์เซอร์ • เอกสารแนบเริ่มหน้าใหม่';});
 }
 
@@ -174,15 +175,29 @@ async function ensurePaperFonts(doc){
  for(const weight of [400,700]){const faces=await doc.fonts.load(`${weight} ${css.fontSize} ${family}`,sample);if(!faces.length||faces.some(f=>f.status!=='loaded'))throw new Error('Document font unavailable');}
  await doc.fonts.ready;
 }
+// Outline copied from the period glyph shared by the three bundled Sarabun faces.
+// Vector contours avoid font substitution and small-glyph grid fitting for signature guides.
+function signatureDots(extra=''){
+ const glyph='M115 28Q115 14 104.5 4Q94 -6 80 -6Q66 -6 56 4Q46 14 46 28Q46 42 56 52.5Q66 63 80 63Q94 63 104.5 52.5Q115 42 115 28Z';
+ const paths=Array.from({length:110},(_,i)=>`<path transform="translate(${i*162} 0)" d="${glyph}"/>`).join('');
+ return `<svg class="signatureDots ${extra}" xmlns="http://www.w3.org/2000/svg" aria-label="เส้นจุดสำหรับลงนาม" height="1em" width="60mm" viewBox="0 0 11000 1000" preserveAspectRatio="xMinYMid meet"><g fill="currentColor" transform="translate(0 850) scale(1 -1)">${paths}</g></svg>`;
+}
 function fitSignatureDots(root){
- root.querySelectorAll('.signatureDots').forEach(span=>{
-  span.textContent='.';const unit=span.getBoundingClientRect().width;
-  const box=span.parentElement,win=span.ownerDocument.defaultView,zoom=box.getBoundingClientRect().width/(box.offsetWidth||1);
-  if(unit>0){const target=Math.min(60*96/25.4*zoom,box.getBoundingClientRect().width*.9);span.textContent='.'.repeat(Math.max(1,Math.floor(target/unit)));}
-  else span.textContent='.'.repeat(64);
+ root.querySelectorAll('svg.signatureDots').forEach(svg=>{
+  const width=svg.clientWidth,size=parseFloat(svg.ownerDocument.defaultView.getComputedStyle(svg).fontSize);
+  if(width&&size)svg.setAttribute('viewBox',`0 0 ${width/size*1000} 1000`);
  });
 }
 function fitLines(root){if(!root)return;fitSignatureDots(root);ruleMemoLines(root);root.querySelectorAll('.fitLine').forEach(box=>{const span=box.querySelector('span');if(!span)return;span.style.transform='';span.style.display='inline-block';const width=box.clientWidth;if(width&&span.offsetWidth>width)span.style.transform=`scaleX(${width/span.offsetWidth})`;});}
+function paragraphSettings(){try{return JSON.parse(val('paragraphStyles')||'{}')}catch{return {}}}
+function paragraphStyle(i){const o=paragraphSettings()[i]||{},size=Number(o.size),line=Number(o.line),mode=o.align||'left',align=['left','center','right','justify'].includes(mode)?mode:'left';const word=o.wordSpace==null?(mode==='gentle'?.5:0):Math.min(4,Math.max(0,Number(o.wordSpace)||0)),letter=o.letterSpace==null?(mode==='gentle'?.1:0):Math.min(.5,Math.max(0,Number(o.letterSpace)||0));return ` style="text-align:${align};text-align-last:${align==='justify'?'left':align};word-spacing:${word}pt;letter-spacing:${letter}pt;${size>=12&&size<=24?'font-size:'+size+'pt;':''}line-height:${line>=1&&line<=2?line:1.15}"`;}
+
+function renderParagraphControls(){const box=$('paragraphControls');if(!box)return;const settings=paragraphSettings(),parts=val('body').replace(/\r\n?/g,'\n').split(/\n+/).filter(x=>x.trim());box.innerHTML=parts.length?parts.map((p,i)=>{const o=settings[i]||{};return `<div class="paragraphControl"><strong>แถว / ย่อหน้า ${i+1}</strong><p>${esc(p.slice(0,90))}${p.length>90?'…':''}</p><div class="grid"><label>ขนาดตัวอักษร<select data-paragraph="${i}" data-format="size"><option value="">ตามเอกสาร</option>${[12,13,14,15,16,17,18,20,22,24].map(v=>`<option value="${v}" ${Number(o.size)===v?'selected':''}>${v} pt</option>`).join('')}</select></label><label>จัดแนว<select data-paragraph="${i}" data-format="align">${[['left','ชิดซ้าย'],['gentle','ถ่างเล็กน้อย / ปรับเอง'],['center','กึ่งกลาง'],['right','ชิดขวา'],['justify','เต็มบรรทัดอัตโนมัติ']].map(([v,t])=>`<option value="${v}" ${(o.align||'left')===v?'selected':''}>${t}</option>`).join('')}</select></label><label>ระยะบรรทัด<select data-paragraph="${i}" data-format="line">${[1,1.15,1.2,1.3,1.5,2].map(v=>`<option value="${v}" ${Number(o.line||1.15)===v?'selected':''}>${v} เท่า</option>`).join('')}</select></label><label>เพิ่มช่องว่างระหว่างคำ<select data-paragraph="${i}" data-format="wordSpace">${[0,.25,.5,.75,1,1.5,2,3,4].map(v=>`<option value="${v}" ${Number(o.wordSpace??(o.align==='gentle'?.5:0))===v?'selected':''}>${v===0?'ปกติ':v+' pt'}</option>`).join('')}</select></label><label>เพิ่มระยะระหว่างตัวอักษร<select data-paragraph="${i}" data-format="letterSpace">${[0,.05,.1,.15,.2,.3,.4,.5].map(v=>`<option value="${v}" ${Number(o.letterSpace??(o.align==='gentle'?.1:0))===v?'selected':''}>${v===0?'ปกติ':v+' pt'}</option>`).join('')}</select></label></div><small>โหมดถ่างเล็กน้อยควบคุมระยะได้ โดยไม่บังคับให้ข้อความสั้นยืดเต็มแถว ส่วนเต็มบรรทัดอัตโนมัติให้เบราว์เซอร์กระจายช่องว่าง</small></div>`}).join(''):'<p>ใส่เนื้อหาก่อน แล้วปรับแต่ละย่อหน้าได้ที่นี่</p>';}
+function initParagraphControls(){
+ $('doc_body').closest('label').insertAdjacentHTML('afterend','<input type="hidden" id="doc_paragraphStyles" value="{}"><details id="paragraphPanel"><summary>ปรับตัวอักษรและระยะบรรทัดแยกแถว</summary><p>กด Enter ในช่องเนื้อหาเพื่อแยกแถวที่ต้องการปรับ ข้อความยาวจะตัดบรรทัดต่อให้อัตโนมัติ</p><div id="paragraphControls"></div></details>');
+ $('paragraphControls').onchange=e=>{const i=e.target.dataset.paragraph,k=e.target.dataset.format;if(i===undefined||!k)return;const o=paragraphSettings();o[i]={...(o[i]||{}),[k]:e.target.value};$('doc_paragraphStyles').value=JSON.stringify(o);renderParagraphControls();changed()};
+ $('doc_body').addEventListener('change',renderParagraphControls);
+}
 function initV70(){
 $('doc_position').parentElement.insertAdjacentHTML('afterend',input('positionShort','ตำแหน่งย่อที่ต้องการแสดง เช่น หัวหน้างานประกันคุณภาพฯ'));
 $('docForm').insertAdjacentHTML('beforeend',`<details><summary>การจัดวางและผู้ลงนามเพิ่มเติม</summary><input type="hidden" id="doc_signatureAlign" value="right"><p class="muted">ผู้ลงนามหลักอยู่ในช่องด้านบน เพิ่มผู้ลงนามได้ตามจริง ส่วนผู้ผ่านงานและผู้บริหารเลือกแยกต่างหาก ตำแหน่งจะบีบแนวนอนให้อยู่บรรทัดเดียว ช่องข้อความย่อแก้เองได้โดยไม่เปลี่ยนชื่อตำแหน่งเต็ม</p><input id="doc_extraSigners" type="hidden" value="[]"><div id="extraSignerEditor"></div><button type="button" class="btn light" id="addSigner">+ เพิ่มผู้ลงนาม</button></details><details id="aiPanel"><summary>คำสั่ง AI ตามเอกสารที่เลือก</summary><label>ต้องการร่างอะไร<select id="aiTarget"><option value="main">ตัวหนังสือหลัก</option>${Object.entries(attachmentTemplates).map(([k,t])=>`<option value="${k}">${t.name}</option>`).join('')}</select></label><label>รายละเอียดเพิ่มเติม เช่น วัน เวลา สถานที่ ข้อเท็จจริง<textarea id="aiFacts"></textarea></label><button type="button" class="btn light" id="buildPrompt">สร้าง / อัปเดตคำสั่ง</button><label>คำสั่งที่จะส่งให้ AI (แก้ไขได้)<textarea id="aiPrompt" style="min-height:260px"></textarea></label><div class="actions"><button type="button" class="btn light" id="copyPrompt">คัดลอกคำสั่ง</button><button type="button" class="btn primary" id="openPrompt">เปิด ChatGPT พร้อมคำสั่งนี้</button></div><p id="aiStatus" role="status">ถ้า ChatGPT ไม่เติมคำสั่งให้ ให้วางข้อความที่คัดลอกไว้ในช่องสนทนา</p></details>`);
@@ -233,6 +248,6 @@ function initSimpleForm(){
  $('docForm').addEventListener('submit',()=>{if(current&&val('subject')){const msg=$('docStatus').textContent;$('saveDocDefaults').click();$('docStatus').textContent=msg;}});
 }
 
-initStudio();initV70();initSimpleForm();initTopActions();
+initStudio();initV70();initSimpleForm();initTopActions();initParagraphControls();
 render();
 })();
