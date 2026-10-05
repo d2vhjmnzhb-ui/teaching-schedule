@@ -94,29 +94,26 @@ function fileTitle(){
  const t=String(val('subject')||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().replace(/^\.+/,'').slice(0,120).trim();
  return t||'หนังสือราชการ';
 }
-const within=(promise,ms)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),ms))]);
-async function preparePaper(doc){
- let fontsOk=true;
- try{await within(ensurePaperFonts(doc),6000);}catch(error){fontsOk=false;}
- try{await within(Promise.all([...doc.images].map(img=>img.decode?img.decode().catch(()=>{}):Promise.resolve())),3000);}catch(error){}
- try{fitLines(doc);ruleMemoLines(doc);positionDraftChecks(doc);}catch(error){console.error('จัดหน้าเอกสารไม่สำเร็จ',error);}
- return fontsOk;
-}
-async function printWindow(win,button){
- if(win.__printing||win.closed)return;
- win.__printing=true;if(button)button.disabled=true;
- try{
-  const fontsOk=await preparePaper(win.document);
-  if(win.closed)return;
-  if(!fontsOk&&!win.confirm('โหลดฟอนต์เอกสารไม่ครบ ตัวอักษรอาจไม่ตรงแบบ (ตรวจว่าอัปโหลดโฟลเดอร์ fonts ครบ)\n\nต้องการพิมพ์ / บันทึก PDF ต่อหรือไม่?'))return;
-  win.focus();win.print();
- }catch(error){console.error(error);try{win.alert('พิมพ์ไม่สำเร็จ กรุณากดปุ่มพิมพ์อีกครั้ง');}catch(e){}}
- finally{win.__printing=false;if(button)button.disabled=false;}
-}
-function whenLoaded(win,fn){
- let ran=false;const run=()=>{if(ran)return;ran=true;fn();};
- if(win.document.readyState==='complete')setTimeout(run,0);else win.addEventListener('load',run,{once:true});
- setTimeout(()=>{if(!win.closed)run();},3000);
+function popupBoot(){
+ /* ฟังก์ชันนี้ถูกฝังไปรันในหน้าต่างพิมพ์เอง ไม่พึ่งหน้าหลัก (iPad พักหน้าหลักไว้เบื้องหลังเมื่อเปิดแท็บใหม่) */
+ var btn=document.getElementById('printReadyButton'),st=document.getElementById('printStatus');
+ var ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ var inFrame=window.self!==window.top;
+ function say(t){if(st)st.textContent=t;}
+ function layout(){try{fitLines(document);ruleMemoLines(document);positionDraftChecks(document);}catch(e){console.error(e);}}
+ function doPrint(){layout();try{window.focus();window.print();}catch(e){say('เปิดหน้าพิมพ์ไม่สำเร็จ: '+(e&&e.message||e));}}
+ if(btn)btn.addEventListener('click',doPrint);
+ window.addEventListener('beforeprint',layout);
+ function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+ (async function(){
+  var fontsOk=true;
+  try{await Promise.race([ensurePaperFonts(document),wait(8000).then(function(){throw new Error('timeout');})]);}catch(e){fontsOk=false;}
+  try{await Promise.race([Promise.all(Array.prototype.map.call(document.images,function(i){return i.decode?i.decode().catch(function(){}):Promise.resolve();})),wait(3000)]);}catch(e){}
+  layout();
+  say(fontsOk?(ios?'พร้อมแล้ว แตะปุ่มด้านบนเพื่อพิมพ์ / บันทึก PDF':'พร้อมพิมพ์'):'โหลดฟอนต์เอกสารไม่ครบ ตัวอักษรอาจไม่ตรงแบบ (ตรวจว่าอัปโหลดโฟลเดอร์ fonts ครบ) แตะปุ่มด้านบนหากต้องการพิมพ์ต่อ');
+  if(btn)btn.disabled=false;
+  if(fontsOk&&(!ios||inFrame))setTimeout(doPrint,50);
+ })();
 }
 function buildPrintHtml(title){
  const base=new URL('.',location.href).href,copy=$('docPreview').cloneNode(true);copy.querySelectorAll('.docPaper').forEach(p=>p.style.removeProperty('zoom'));
@@ -128,7 +125,9 @@ function buildPrintHtml(title){
    copy.appendChild(clone);
   });});
  }
- return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><link rel="stylesheet" href="document-paper.css?v=85"></head><body class="document-only"><div class="printTools"><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p></div>'+copy.outerHTML+'</body></html>';
+ const code=[fitSignatureDots,fitLines,ruleMemoLines,positionDraftChecks,ensurePaperFonts,popupBoot].map(f=>f.toString()).join('\n')+'\npopupBoot();';
+ const hint='iPad: แตะปุ่ม → เลือก “พิมพ์” → บีบนิ้วขยายตัวอย่างหน้า → แตะปุ่มแชร์ → “บันทึกลงไฟล์”';
+ return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><link rel="stylesheet" href="document-paper.css?v=85"></head><body class="document-only"><div class="printTools"><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
 }
 function printInFrame(html,title){
  /* ทางสำรองเมื่อเบราว์เซอร์บล็อกป๊อปอัป: พิมพ์จากเฟรมซ่อนในหน้าเดิม ชื่อไฟล์ใช้ชื่อหน้าเว็บชั่วคราว */
@@ -140,15 +139,12 @@ function printInFrame(html,title){
  const done=()=>{document.title=previous;frame.remove();};
  w.addEventListener('afterprint',done,{once:true});
  setTimeout(done,600000);
- whenLoaded(w,()=>printWindow(w,null));
 }
 function printDocument(){
 renderPaper();fitLines($('docPreview'));
 const title=fileTitle(),html=buildPrintHtml(title),w=window.open('','_blank');
 if(!w){printInFrame(html,title);return;}
 w.document.open();w.document.write(html);w.document.close();
-const button=w.document.getElementById('printReadyButton');if(button)button.onclick=()=>printWindow(w,button);
-whenLoaded(w,()=>printWindow(w,button));
 }
 function positionDraftChecks(doc){doc.querySelectorAll('.draftChecks').forEach(footer=>{footer.style.marginTop='12mm';const paper=footer.closest('.docPaper'),win=doc.defaultView,style=win.getComputedStyle(paper),contentTop=paper.getBoundingClientRect().top+parseFloat(style.paddingTop),used=footer.getBoundingClientRect().top-contentTop,footerHeight=footer.getBoundingClientRect().height,area=262*96/25.4;if(used+footerHeight<area)footer.style.marginTop=(12*96/25.4+area-used-footerHeight-2)+'px';});}
 function changed(){dirty=true;refreshPreview();$('docStatus').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก'}
