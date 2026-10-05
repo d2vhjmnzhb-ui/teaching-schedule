@@ -83,3 +83,19 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 .docPaper .planOpinion svg.signatureDots{width:36mm}
 .docPaper .planOpinion svg.signatureNameDots{width:36mm}
 @media print{.document-only .docPaper.lessonPlanPaper{padding-top:12mm!important}}
+
+/* v92: ปรับตามแบบหนังสือภายในวิทยาลัย (ไฟล์ แบบฟอร์มหนังสือภายในแจ้งจุด)
+   ขอบ บน 2 / ซ้าย 3 / ขวา 2 / ล่าง 2 ซม.; ครุฑสูง 1.5 ซม.; หัวบันทึกข้อความ 28 pt;
+   ป้าย ส่วนราชการ/ที่/วันที่/เรื่อง 20 pt ตัวหนา; เนื้อความ 16 pt; ย่อหน้า 2.5 ซม.;
+   ระยะบรรทัด 1 เท่า (Single); ระหว่างบล็อก เว้น 1 บรรทัด + 6 pt */
+.docPaper.internalPaper{padding-top:20mm}
+.docPaper.internalPaper .memoHead{height:18mm;margin-bottom:2mm}
+.docPaper.internalPaper .memoHead img{height:15mm}
+.docPaper.internalPaper .memoHead h1{font-size:28pt;line-height:34pt}
+.docPaper.lessonPlanPaper .memoHead h1{font-size:28pt;line-height:34pt;top:5mm}
+.docPaper.internalPaper .memoLine b{font-size:20pt;font-weight:700}
+.docPaper.internalPaper .bodyText p{text-indent:25mm;line-height:1;margin:0 0 0;padding-top:6pt}
+.docPaper.internalPaper .bodyText p:first-child{padding-top:6pt}
+@media print{
+ .document-only .docPaper.internalPaper,.document-only .docPaper.lessonPlanPaper{padding:20mm 20mm 20mm 30mm!important}
+}
