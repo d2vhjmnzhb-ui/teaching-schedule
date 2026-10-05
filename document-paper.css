@@ -99,3 +99,14 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 @media print{
  .document-only .docPaper.internalPaper,.document-only .docPaper.lessonPlanPaper{padding:20mm 20mm 20mm 30mm!important}
 }
+
+/* v93: เทียบแบบฟอร์มหนังสือภายในแจ้งจุด — ให้ฐาน/เท้าครุฑเสมอแนวฐานหัว “บันทึกข้อความ” และเพิ่มผู้ลงนามแบบคู่ */
+.docPaper.internalPaper .memoHead img{top:0;height:15mm}
+.docPaper.internalPaper .memoHead h1{top:2.8mm;font-size:28pt;line-height:34pt;font-weight:700}
+.docPaper.internalPaper .memoLine{font-size:var(--paper-size,16pt);line-height:24pt;min-height:24pt}
+.docPaper.internalPaper .memoLine b{font-size:20pt;font-weight:700}
+.docPaper.internalPaper .signerStack.pairLayout{display:grid;grid-template-columns:1fr 1fr;column-gap:12mm;width:100%;margin-top:8mm}
+.docPaper.internalPaper .signerStack.pairLayout .signature{width:100%;margin:0 0 7mm;transform:none}
+.docPaper.internalPaper .signerStack.pairLayout .signature:nth-child(odd){grid-column:1}
+.docPaper.internalPaper .signerStack.pairLayout .signature:nth-child(even){grid-column:2}
+@media(max-width:760px){.docPaper.internalPaper .signerStack.pairLayout{grid-template-columns:1fr 1fr}}
