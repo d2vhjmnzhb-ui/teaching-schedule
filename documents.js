@@ -266,13 +266,13 @@ async function updateMemoFontDiagnostic(){
     host?.appendChild(box);
   }
   try{
-    await document.fonts.load('16pt "MemoMasterPSK"');
-    await document.fonts.load('700 29pt "MemoMasterPSK"');
+    await document.fonts.load('12.5pt "MemoV106"');
+    await document.fonts.load('700 21.5pt "MemoV106"');
     const p=document.querySelector('#docPreview .internalPaper .bodyText p') || document.querySelector('#docPreview .internalPaper');
     const h=document.querySelector('#docPreview .internalPaper .memoHead h1');
     if(!p){box.textContent='ตรวจฟอนต์: ยังไม่มีตัวอย่างเอกสาร';return}
     const ps=getComputedStyle(p), hs=h?getComputedStyle(h):null;
-    const ok=document.fonts.check('16pt "MemoMasterPSK"');
-    box.textContent='ตรวจฟอนต์ v105: '+(ok?'โหลดไฟล์ TH Sarabun IT9 แบบบางในระบบแล้ว':'ฟอนต์ยังไม่โหลด')+' • เนื้อหา '+ps.fontFamily+' / '+ps.fontSize+' / weight '+ps.fontWeight+(hs?' • หัว '+hs.fontSize+' / weight '+hs.fontWeight:'');
-  }catch(err){box.textContent='ตรวจฟอนต์ v105: '+err.message}
+    const ok=document.fonts.check('12.5pt "MemoV106"');
+    box.textContent='ตรวจฟอนต์ v106: '+(ok?'โหลด TH SarabunPSK v106 จากไฟล์ระบบแล้ว':'ฟอนต์ยังไม่โหลด')+' • เนื้อหา '+ps.fontFamily+' / '+ps.fontSize+' / weight '+ps.fontWeight+(hs?' • หัว '+hs.fontSize+' / weight '+hs.fontWeight:'');
+  }catch(err){box.textContent='ตรวจฟอนต์ v106: '+err.message}
 }

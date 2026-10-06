@@ -180,3 +180,50 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 .docPaper.internalPaper .signatureBlock,.docPaper.internalPaper .signatureBlock *,
 .docPaper.internalPaper .opinionBlock,.docPaper.internalPaper .opinionBlock *{font-weight:400!important;font-synthesis:none!important}
 .docPaper.internalPaper .memoHead h1,.docPaper.internalPaper .memoLine>b,.docPaper.internalPaper .memoLine>span>b{font-weight:700!important}
+
+/* v106 — visual master calibration.
+   IMPORTANT: this block is intentionally LAST. It targets the ACTUAL rendered classes.
+   Previous v105 thin selectors (.memoBody/.signatureBlock/.opinionBlock) did not exist in
+   the renderer, so v104's 16/20/29pt rules were still winning on iPad. */
+@font-face{font-family:'MemoV106';src:url('fonts/THSarabunPSK.ttf') format('truetype');font-style:normal;font-weight:400;font-display:block}
+@font-face{font-family:'MemoV106';src:url('fonts/THSarabunPSK-Bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:block}
+.docPaper.internalPaper,.docPaper.internalPaper *{
+  font-family:'MemoV106'!important;
+  font-synthesis:none!important;
+  -webkit-text-size-adjust:100%!important;text-size-adjust:100%!important;
+}
+.docPaper.internalPaper{font-size:12.5pt!important;line-height:1!important;font-weight:400!important}
+.docPaper.internalPaper .memoHead{height:14mm!important;margin-bottom:0!important}
+.docPaper.internalPaper .memoHead img{height:13mm!important;top:-9mm!important}
+.docPaper.internalPaper .memoHead h1{
+  font-size:21.5pt!important;line-height:22pt!important;font-weight:700!important;top:0!important;
+}
+.docPaper.internalPaper .memoLine{
+  min-height:16pt!important;line-height:16pt!important;font-size:12.5pt!important;font-weight:400!important;
+}
+.docPaper.internalPaper .memoLine b,
+.docPaper.internalPaper .memoLine>span>b{
+  font-size:15pt!important;line-height:16pt!important;font-weight:700!important;
+}
+.docPaper.internalPaper .bodyText{margin-top:3pt!important}
+.docPaper.internalPaper .bodyText p{
+  font-size:12.5pt!important;line-height:1.02!important;font-weight:400!important;
+  margin:0!important;padding-top:3pt!important;text-indent:25mm!important;
+}
+.docPaper.internalPaper .signature,
+.docPaper.internalPaper .signature *,
+.docPaper.internalPaper .signerStack,
+.docPaper.internalPaper .signerStack *,
+.docPaper.internalPaper .opinions,
+.docPaper.internalPaper .opinions *,
+.docPaper.internalPaper .planOpinions,
+.docPaper.internalPaper .planOpinions *{
+  font-size:12.5pt!important;line-height:1.02!important;font-weight:400!important;
+}
+.docPaper.internalPaper .signature{margin-top:5mm!important;margin-bottom:3mm!important}
+.docPaper.internalPaper .signatureSpace{height:8mm!important}
+.docPaper.internalPaper .opinions{margin-top:7mm!important;gap:8mm!important}
+.docPaper.internalPaper .signatureDots{font-size:12.5pt!important;line-height:1!important;font-weight:400!important}
+@media print{
+ .docPaper.internalPaper,.docPaper.internalPaper *{font-family:'MemoV106'!important;font-synthesis:none!important}
+}
