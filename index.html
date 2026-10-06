@@ -1930,7 +1930,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
 
   function ensureBox(){
     let box=document.getElementById('smartOptimizerBox');if(box)return box;
-    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">คำแนะนำปรับตารางอัจฉริยะ</div><div class="opt-sub">ระบบจะเสนอการย้ายเมื่อทำให้ตารางกระชับขึ้น โดยไม่ย้ายตารางเดิมเองจนกว่าจะกดยอมรับ</div><div id="smartOptimizerList"></div>';
+    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">คำแนะนำปรับตารางอัจฉริยะ</div><div class="opt-sub">ระบบจะเสนอการย้ายเมื่อทำให้ตารางกระชับขึ้น และเน้นให้วิชายาวต่อเนื่องกันมากที่สุด โดยไม่ย้ายตารางเดิมเองจนกว่าจะกดยอมรับ</div><div id="smartOptimizerList"></div>';
     const anchor=document.getElementById('subjectStatus')||document.getElementById('autoAll');
     if(anchor)anchor.parentElement.appendChild(box);return box;
   }
@@ -1951,15 +1951,36 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   function renderSmartSuggestions(){
     ensureBox();const list=document.getElementById('smartOptimizerList');if(!list)return;const g=group();if(!g){list.innerHTML='';return}
     const suggestions=[];
+    // v110: คงคำแนะนำเดิมทั้งหมด แต่เพิ่มน้ำหนักให้ "วิชายาว" ต่อเนื่องกันมากที่สุด
+    // วิชายาว = รายวิชาที่มีชั่วโมงรวมตั้งแต่ 3 ชม.ขึ้นไป; ถ้ามีวิชาเดียวกันอยู่ติดปลายทาง จะให้คะแนนโบนัสสูง
+    const sameSubjectAt=(gid,d,p,sid)=>{const l=state.lessons[key(gid,d,p)];return !!(l&&l.subjectId===sid)};
+    const continuityBonus=(gid,d,start,len,s)=>{
+      const total=Number(s.t||0)+Number(s.p||0);if(total<3)return 0;
+      const left=sameSubjectAt(gid,d,start-1,s.id),right=sameSubjectAt(gid,d,start+len,s.id);
+      // ติดวิชาเดียวกันสองด้านดีที่สุด รองลงมาคือติดด้านเดียว เพื่อรวมก้อนให้ยาวต่อเนื่อง
+      return (left&&right)?5200:(left||right)?3600:0;
+    };
     for(const b of blocksForGroup(g.id)){
-      if(b.start<9)continue;const s=subject(b.l.subjectId);if(!s||isActivitySubject(s))continue;
+      const s=subject(b.l.subjectId);if(!s||isActivitySubject(s))continue;
+      const isLong=(Number(s.t||0)+Number(s.p||0))>=3;
       let best=null;
-      for(let d=0;d<5;d++)for(const start of [1,6,2,3,4,7,8]){const dest=lessonCanMove(g.id,s,b.keys,d,start);if(!dest)continue;const gain=blockScore(d,start,b.keys.length)-blockScore(b.d,b.start,b.keys.length);if(gain>0&&(!best||gain>best.gain))best={dest,d,start,gain}}
-      if(best)suggestions.push({b,best,s});
+      for(let d=0;d<5;d++)for(const start of [1,6,2,3,4,7,8]){
+        // คำแนะนำเดิม: เน้นย้ายคาบท้าย 9–12 ไปช่วงต้น
+        // เพิ่มใหม่: วิชายาวที่แตกเป็นหลายก้อน สามารถเสนอให้ย้ายมาต่อกับวิชาเดียวกันได้ แม้ต้นทางไม่ใช่คาบท้าย
+        if(b.start<9&&!isLong)continue;
+        const dest=lessonCanMove(g.id,s,b.keys,d,start);if(!dest)continue;
+        if(d===b.d&&start===b.start)continue;
+        const cont=continuityBonus(g.id,d,start,b.keys.length,s);
+        const base=blockScore(d,start,b.keys.length)-blockScore(b.d,b.start,b.keys.length);
+        const gain=base+cont;
+        if(gain>0&&(!best||gain>best.gain))best={dest,d,start,gain,cont};
+      }
+      // สำหรับคาบที่ไม่ใช่ 9–12 แนะนำเฉพาะเมื่อช่วยให้วิชายาวต่อเนื่องจริง เพื่อไม่รบกวนคำแนะนำเดิมที่ดีอยู่แล้ว
+      if(best&&(b.start>=9||best.cont>0))suggestions.push({b,best,s});
     }
-    suggestions.sort((a,b)=>b.best.gain-a.best.gain);
-    if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้ยังไม่มีคาบท้ายที่สามารถย้ายไปช่วงต้นได้โดยไม่ทำให้ครูหรือนักเรียนชน</div>';return}
-    list.innerHTML=suggestions.slice(0,6).map((x,i)=>`<div class="opt-item"><div><b>แนะนำ: ย้าย ${esc(x.s.code)} ${esc(x.s.name)}</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: ลดการเรียนคาบ 9–12 และให้ความสำคัญกับการเริ่มคาบ ${x.best.start===1?'1 มากที่สุด':x.best.start===6?'6 รองจากคาบ 1':x.best.start}</div></div><button type="button" class="btn light" data-opt="${i}">ดูและย้าย</button></div>`).join('');
+    suggestions.sort((a,b)=>(b.best.cont>0)-(a.best.cont>0)||b.best.gain-a.best.gain);
+    if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้ยังไม่มีจุดที่ควรย้าย: วิชายาวต่อเนื่องดีแล้ว และไม่มีคาบท้ายที่สามารถย้ายไปช่วงต้นได้โดยไม่ทำให้ครูหรือนักเรียนชน</div>';return}
+    list.innerHTML=suggestions.slice(0,6).map((x,i)=>`<div class="opt-item"><div><b>แนะนำ: ย้าย ${esc(x.s.code)} ${esc(x.s.name)}</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: ${x.best.cont>0?'ทำให้วิชายาวเรียนต่อเนื่องกันมากขึ้น ลดการแตกเป็นหลายช่วง':`ลดการเรียนคาบ 9–12 และให้ความสำคัญกับการเริ่มคาบ ${x.best.start===1?'1 มากที่สุด':x.best.start===6?'6 รองจากคาบ 1':x.best.start}`}</div></div><button type="button" class="btn light" data-opt="${i}">ดูและย้าย</button></div>`).join('');
     list.querySelectorAll('[data-opt]').forEach(btn=>btn.onclick=(ev)=>{
       ev.preventDefault();ev.stopPropagation();
       const x=suggestions[Number(btn.dataset.opt)];if(!x)return;
