@@ -148,3 +148,51 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
  .document-only #docPreview{width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;zoom:1!important;transform:none!important}
  .document-only .docPaper.internalPaper{width:210mm!important;min-height:297mm!important;margin:0!important;padding:25.01mm 22.47mm 25.40mm 27.52mm!important;zoom:1!important;transform:none!important;box-shadow:none!important}
 }
+
+/* v102 — font-weight correction for internal documents on Safari/iPad.
+   Keep the v100 geometry intact; remove accidental/synthetic bold from all normal text. */
+.docPaper.internalPaper,
+.docPaper.internalPaper *{
+  font-synthesis:none!important;
+  -webkit-font-smoothing:antialiased;
+  font-style:normal;
+}
+.docPaper.internalPaper{
+  font-family:'TH SarabunPSK','TH Sarabun New',sans-serif!important;
+  font-weight:400!important;
+}
+.docPaper.internalPaper p,
+.docPaper.internalPaper span,
+.docPaper.internalPaper div,
+.docPaper.internalPaper .bodyText,
+.docPaper.internalPaper .bodyText p,
+.docPaper.internalPaper .signature,
+.docPaper.internalPaper .signature *,
+.docPaper.internalPaper .signerStack,
+.docPaper.internalPaper .signerStack *,
+.docPaper.internalPaper .opinions,
+.docPaper.internalPaper .opinions *,
+.docPaper.internalPaper .planOpinions,
+.docPaper.internalPaper .planOpinions *,
+.docPaper.internalPaper .signatureDots{
+  font-weight:400!important;
+}
+/* Only these elements are bold in the Word master. */
+.docPaper.internalPaper .memoHead h1,
+.docPaper.internalPaper .memoLine > span > b{
+  font-weight:700!important;
+  font-synthesis:none!important;
+}
+/* Any b/strong accidentally introduced inside body/signature/opinion stays regular. */
+.docPaper.internalPaper .bodyText b,
+.docPaper.internalPaper .bodyText strong,
+.docPaper.internalPaper .signature b,
+.docPaper.internalPaper .signature strong,
+.docPaper.internalPaper .opinions b,
+.docPaper.internalPaper .opinions strong{
+  font-weight:400!important;
+}
+@media print{
+  .docPaper.internalPaper,
+  .docPaper.internalPaper *{font-synthesis:none!important;-webkit-text-size-adjust:none!important;text-size-adjust:none!important}
+}
