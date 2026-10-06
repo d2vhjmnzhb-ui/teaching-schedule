@@ -227,3 +227,45 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 @media print{
  .docPaper.internalPaper,.docPaper.internalPaper *{font-family:'MemoV106'!important;font-synthesis:none!important}
 }
+
+/* v107 — CLEAN INTERNAL MEMO RENDERER
+   Rebuilt from the user's Pak Chong Technical College Word/photo master.
+   This block owns only .memoV107 and does not alter other systems/documents. */
+@font-face{font-family:'MemoV107';src:url('fonts/THSarabunIT9.ttf') format('truetype');font-style:normal;font-weight:400;font-display:block}
+@font-face{font-family:'MemoV107';src:url('fonts/THSarabunIT9-Bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:block}
+.docPaper.internalPaper.memoV107,
+.docPaper.internalPaper.memoV107 *{box-sizing:border-box!important;font-family:'MemoV107'!important;font-synthesis:none!important;-webkit-text-size-adjust:none!important;text-size-adjust:none!important}
+.docPaper.internalPaper.memoV107{width:210mm!important;min-height:297mm!important;padding:16mm 18mm 18mm 22mm!important;margin:0!important;font-size:11pt!important;line-height:1.05!important;font-weight:400!important;color:#111!important;background:#fff!important}
+.docPaper.internalPaper.memoV107 .memoHead{position:relative!important;height:17mm!important;margin:0 0 1mm!important}
+.docPaper.internalPaper.memoV107 .memoHead img{position:absolute!important;left:0!important;top:0!important;width:auto!important;height:14mm!important}
+.docPaper.internalPaper.memoV107 .memoHead h1{position:absolute!important;left:50%!important;top:4mm!important;transform:translateX(-50%)!important;margin:0!important;white-space:nowrap!important;font-size:18.5pt!important;line-height:1!important;font-weight:700!important}
+.docPaper.internalPaper.memoV107 .memoMeta{margin:0!important;padding:0!important}
+.docPaper.internalPaper.memoV107 .memoRow{display:flex!important;align-items:flex-end!important;gap:2mm!important;min-height:5.2mm!important;margin:0!important;border-bottom:.2mm dotted #777!important;font-size:11pt!important;line-height:1!important;font-weight:400!important}
+.docPaper.internalPaper.memoV107 .memoRow>b,.docPaper.internalPaper.memoV107 .memoNumberDate b{flex:0 0 auto!important;font-size:13.2pt!important;line-height:1!important;font-weight:700!important}
+.docPaper.internalPaper.memoV107 .memoRow>span{min-width:0!important;flex:1!important;padding-bottom:.45mm!important;font-weight:400!important}
+.docPaper.internalPaper.memoV107 .memoNumberDate{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12mm!important}
+.docPaper.internalPaper.memoV107 .memoNumberDate>div{display:flex!important;align-items:flex-end!important;gap:2mm!important}
+.docPaper.internalPaper.memoV107 .memoNumberDate span{flex:1!important;padding-bottom:.45mm!important;font-weight:400!important}
+.docPaper.internalPaper.memoV107 .memoRecipient{display:grid!important;grid-template-columns:15mm 1fr!important;column-gap:2mm!important;margin:2.2mm 0 0!important;font-size:11pt!important;line-height:1.05!important}
+.docPaper.internalPaper.memoV107 .memoRecipient b{font-weight:400!important;font-size:11pt!important}
+.docPaper.internalPaper.memoV107 .bodyText{margin:2.6mm 0 0!important;padding:0!important}
+.docPaper.internalPaper.memoV107 .bodyText p{margin:0!important;padding:0!important;text-indent:20mm!important;font-size:11pt!important;line-height:1.12!important;font-weight:400!important;text-align:justify!important;text-justify:inter-cluster!important}
+.docPaper.internalPaper.memoV107 .bodyText p+p{margin-top:2.2mm!important}
+.docPaper.internalPaper.memoV107 .signerStack{width:72mm!important;margin:6mm 0 0 auto!important;display:block!important;text-align:center!important;font-size:10.5pt!important;line-height:1.05!important}
+.docPaper.internalPaper.memoV107 .signerStack.pairLayout{width:100%!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:14mm!important}
+.docPaper.internalPaper.memoV107 .signature{width:100%!important;margin:0 0 3mm!important;text-align:center!important;font-size:10.5pt!important;line-height:1.05!important;font-weight:400!important}
+.docPaper.internalPaper.memoV107 .signatureSpace{height:8mm!important}
+.docPaper.internalPaper.memoV107 svg.signatureDots{width:38mm!important;height:.8em!important}
+.docPaper.internalPaper.memoV107 svg.signatureNameDots{width:34mm!important}
+.docPaper.internalPaper.memoV107 .positionLine{margin-top:.6mm!important}
+.docPaper.internalPaper.memoV107 .opinions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14mm!important;margin:8mm 0 0!important;align-items:start!important;font-size:10.5pt!important;line-height:1.12!important;font-weight:400!important}
+.docPaper.internalPaper.memoV107 .opinions>div{min-width:0!important;text-align:left!important}
+.docPaper.internalPaper.memoV107 .opinions .signature{margin-top:5mm!important}
+.docPaper.internalPaper.memoV107 .planOpinions{font-size:10.5pt!important;line-height:1.12!important}
+.docPaper.internalPaper.memoV107 .paperTable{font-size:10.5pt!important;line-height:1.05!important}
+@page{size:A4 portrait;margin:0}
+@media print{
+ html,body{margin:0!important;padding:0!important;background:#fff!important}
+ .document-only #docPreview{width:210mm!important;margin:0!important;padding:0!important;transform:none!important;zoom:1!important}
+ .document-only .docPaper.internalPaper.memoV107,.docPaper.internalPaper.memoV107{width:210mm!important;min-height:297mm!important;padding:16mm 18mm 18mm 22mm!important;margin:0!important;box-shadow:none!important;transform:none!important;zoom:1!important}
+}
