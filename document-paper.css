@@ -197,3 +197,43 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
  .document-only .docPaper.internalPaper .signature,
  .document-only .docPaper.internalPaper .signature *{font-size:16pt!important;line-height:1!important}
 }
+/* v98 — calibrated internal-document output for iPad/Safari.
+   The Word template is 16 pt, but WebKit's Thai glyph metrics render visibly larger.
+   Use print-calibrated sizes only in the document module; no schedule styles are changed. */
+.docPaper.internalPaper{
+  --paper-size:14pt!important;
+  font-size:14pt!important;
+}
+.docPaper.internalPaper .memoHead h1{
+  font-size:26pt!important;
+  line-height:26pt!important;
+  top:3.3mm!important;
+}
+.docPaper.internalPaper .memoLine{
+  font-size:14pt!important;
+  line-height:18pt!important;
+  min-height:18pt!important;
+}
+.docPaper.internalPaper .memoLine b{
+  font-size:18pt!important;
+  line-height:18pt!important;
+}
+.docPaper.internalPaper .bodyText p,
+.docPaper.internalPaper .signature,
+.docPaper.internalPaper .signature *,
+.docPaper.internalPaper .opinions,
+.docPaper.internalPaper .opinions *{
+  font-size:14pt!important;
+  line-height:1.05!important;
+  font-weight:400!important;
+}
+.docPaper.internalPaper .bodyText p{margin:0!important;padding:0!important;text-indent:12.7mm!important}
+@media print{
+ .document-only .docPaper.internalPaper{font-size:14pt!important}
+ .document-only .docPaper.internalPaper .memoHead h1{font-size:26pt!important;line-height:26pt!important}
+ .document-only .docPaper.internalPaper .memoLine{font-size:14pt!important;line-height:18pt!important;min-height:18pt!important}
+ .document-only .docPaper.internalPaper .memoLine b{font-size:18pt!important;line-height:18pt!important}
+ .document-only .docPaper.internalPaper .bodyText p,
+ .document-only .docPaper.internalPaper .signature,
+ .document-only .docPaper.internalPaper .signature *{font-size:14pt!important;line-height:1.05!important}
+}
