@@ -269,3 +269,39 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
  .document-only #docPreview{width:210mm!important;margin:0!important;padding:0!important;transform:none!important;zoom:1!important}
  .document-only .docPaper.internalPaper.memoV107,.docPaper.internalPaper.memoV107{width:210mm!important;min-height:297mm!important;padding:16mm 18mm 18mm 22mm!important;margin:0!important;box-shadow:none!important;transform:none!important;zoom:1!important}
 }
+
+/* v108 — memo alignment calibration from the supplied real print + Word master */
+.docPaper.internalPaper.memoV107{
+  padding:10mm 22.5mm 25.4mm 27.5mm!important;
+}
+.docPaper.internalPaper.memoV107 .memoHead{
+  position:relative!important;height:17mm!important;margin:0 0 1.2mm!important;
+}
+.docPaper.internalPaper.memoV107 .memoHead img{
+  position:absolute!important;left:0!important;top:auto!important;bottom:0!important;
+  height:14mm!important;width:auto!important;
+}
+.docPaper.internalPaper.memoV107 .memoHead h1{
+  position:absolute!important;left:50%!important;top:auto!important;bottom:0!important;
+  transform:translateX(-50%)!important;margin:0!important;padding:0!important;
+  font-size:18.5pt!important;line-height:.88!important;font-weight:700!important;
+}
+/* Signer text must visually match normal memo text, not a separate display style. */
+.docPaper.internalPaper.memoV107 .signerStack,
+.docPaper.internalPaper.memoV107 .signerStack *,
+.docPaper.internalPaper.memoV107 .signature,
+.docPaper.internalPaper.memoV107 .signature *,
+.docPaper.internalPaper.memoV107 .opinions,
+.docPaper.internalPaper.memoV107 .opinions *{
+  font-family:'MemoV107'!important;font-size:11pt!important;font-weight:400!important;
+  font-style:normal!important;font-synthesis:none!important;letter-spacing:0!important;
+}
+.docPaper.internalPaper.memoV107 .signerStack,
+.docPaper.internalPaper.memoV107 .signature{line-height:1.12!important}
+.docPaper.internalPaper.memoV107 .positionLine{margin-top:.35mm!important}
+.docPaper.internalPaper.memoV107 .opinions{line-height:1.12!important}
+@media print{
+ .document-only .docPaper.internalPaper.memoV107,.docPaper.internalPaper.memoV107{
+   padding:10mm 22.5mm 25.4mm 27.5mm!important;
+ }
+}
