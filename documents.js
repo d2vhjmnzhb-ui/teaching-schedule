@@ -122,7 +122,7 @@ function buildPrintHtml(title){
  }
  const code=[fitSignatureDots,fitLines,ruleMemoLines,positionDraftChecks,ensurePaperFonts,popupBoot].map(f=>f.toString()).join('\n')+'\npopupBoot();';
  const hint='iPad: แตะปุ่ม → เลือก “พิมพ์” → บีบนิ้วขยายตัวอย่างหน้า → แตะปุ่มแชร์ → “บันทึกลงไฟล์”';
- return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><script src="vendor/html2canvas.min.js"></script><script src="vendor/pdf-lib.min.js"></script><script src="document-pdf.js?v=103"></script><link rel="stylesheet" href="document-paper.css?v=103"></head><body class="document-only"><div class="printTools"><button id="downloadDocumentPdf" type="button">ดาวน์โหลด PDF</button><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
+ return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+esc(base)+'"><title>'+esc(title)+'</title><script src="vendor/html2canvas.min.js"></script><script src="vendor/pdf-lib.min.js"></script><script src="document-pdf.js?v=104"></script><link rel="stylesheet" href="document-paper.css?v=104"></head><body class="document-only"><div class="printTools"><button id="downloadDocumentPdf" type="button">ดาวน์โหลด PDF</button><button id="printReadyButton">พิมพ์ / บันทึก PDF</button><p id="printStatus" role="status">กำลังเตรียมฟอนต์…</p><p>เลือก A4 ขนาด 100% และปิดหัว/ท้ายของเบราว์เซอร์</p><p>ชื่อไฟล์ที่ใช้บันทึก: '+esc(title)+'.pdf</p><p>'+esc(hint)+'</p></div>'+copy.outerHTML+'<script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
 }
 function printInFrame(html,title){
  /* ทางสำรองเมื่อเบราว์เซอร์บล็อกป๊อปอัป: พิมพ์จากเฟรมซ่อนในหน้าเดิม ชื่อไฟล์ใช้ชื่อหน้าเว็บชั่วคราว */
@@ -156,9 +156,9 @@ const at=enclosures();head+=`<p>เรียน ${e(d.recipient)}</p>`+(d.refere
 const opinions=d.memoTemplate==='lessonPlan'&&current?.type!=='external'?planOpinions(d,signature,e):d.opinions==='yes'&&current?.type!=='external'?`<div class="opinions"><div>ความเห็นของรองผู้อำนวยการ<br>□ เพื่อโปรดทราบ<br>□ เพื่อโปรดพิจารณา<br>................................................${signature(d.deputy,d.deputyPosition||'รองผู้อำนวยการ'+(d.division||'ฝ่ายบริหารทรัพยากร'))}</div><div>ความเห็นของผู้อำนวยการ<br>□ ทราบ / อนุญาต / อนุมัติ<br>□ ไม่อนุญาต / ไม่อนุมัติ<br>................................................${signature(d.director,d.directorPosition||'ผู้อำนวยการวิทยาลัยเทคนิคปากช่อง')}</div></div>`:'';
 const font=['TH Sarabun New','TH SarabunIT๙','TH SarabunPSK'].includes(d.font)?d.font:'TH Sarabun New';
 $('docPreview').style.setProperty('--paper-size','16pt');
-$('docPreview').style.setProperty('--paper-font',current?.type==='internal'?'"TH SarabunPSK", sans-serif':`"${font==='TH Sarabun New'?'Document Sarabun New':font}", sans-serif`);
+$('docPreview').style.setProperty('--paper-font',current?.type==='internal'?'"MemoMasterPSK", sans-serif':`"${font==='TH Sarabun New'?'Document Sarabun New':font}", sans-serif`);
 $('docPreview').innerHTML=`<article class="docPaper ${current?.type==='external'?'externalPaper':'internalPaper'+(d.memoTemplate==='lessonPlan'?' lessonPlanPaper':'')}">${head}<div class="bodyText">${paras(d.body,true,true)}</div>${table(d.table)}<div class="bodyText">${paras(d.closing,true)}</div>${current?.type==='external'?`<p class="salutation">${e(d.salutation)}</p>`:''}<div class="signerStack alignRight ${d.signerLayout==='pair'?'pairLayout':''}">${signature(d.signer,d.position,d.positionShort)}${d.memoTemplate!=='lessonPlan'&&d.reviewer?signature(d.reviewer,d.reviewerPosition):''}${extraSigners().map(a=>signature(a.name,a.position,a.short)).join('')}</div>${opinions}${current?.type==='external'?`<p>${e(d.department)}<br>${d.phone?'โทร. '+e(d.phone):''}</p>`:''}</article>`+at.map(a=>`<article class="docPaper appendix"><h2>${e(a.title)}</h2>${paras(a.body)}${table(a.table||'')}</article>`).join('');
-requestAnimationFrame(()=>{fitLines($('docPreview'));fitPaper();const long=[...$('docPreview').children].some(p=>p.scrollHeight>1124);$('paperWarning').textContent=long?'เนื้อหาบางฉบับเกิน 1 หน้า ระบบพิมพ์จะต่อหน้าอัตโนมัติ กรุณาตรวจจุดแบ่งหน้าในหน้าต่างพิมพ์ (A4, ขนาด 100%, ปิดหัว/ท้ายของเบราว์เซอร์)':'พิมพ์บน A4 • ขนาด 100% • ปิดหัว/ท้ายของเบราว์เซอร์ • เอกสารแนบเริ่มหน้าใหม่';});
+requestAnimationFrame(()=>{fitLines($('docPreview'));fitPaper();updateMemoFontDiagnostic();const long=[...$('docPreview').children].some(p=>p.scrollHeight>1124);$('paperWarning').textContent=long?'เนื้อหาบางฉบับเกิน 1 หน้า ระบบพิมพ์จะต่อหน้าอัตโนมัติ กรุณาตรวจจุดแบ่งหน้าในหน้าต่างพิมพ์ (A4, ขนาด 100%, ปิดหัว/ท้ายของเบราว์เซอร์)':'พิมพ์บน A4 • ขนาด 100% • ปิดหัว/ท้ายของเบราว์เซอร์ • เอกสารแนบเริ่มหน้าใหม่';});
 }
 
 function extraSigners(){try{return JSON.parse(val('extraSigners')||'[]').filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),position:String(x.position||''),short:String(x.short||'')}))}catch{return []}}
@@ -254,3 +254,25 @@ function initSimpleForm(){
 initStudio();initV70();initSimpleForm();initTopActions();initParagraphControls();initCollegeMemo();
 render();
 })();
+
+
+/* v104 font diagnostic: verifies the actual rendered family/size/weight on iPad Safari. */
+async function updateMemoFontDiagnostic(){
+  if(!current || current.type!=='internal') return;
+  let box=document.getElementById('memoFontDiagnostic');
+  if(!box){
+    box=document.createElement('div'); box.id='memoFontDiagnostic'; box.className='notice';
+    const host=document.getElementById('paperWarning')?.parentElement || document.getElementById('docEditor');
+    host?.appendChild(box);
+  }
+  try{
+    await document.fonts.load('16pt "MemoMasterPSK"');
+    await document.fonts.load('700 29pt "MemoMasterPSK"');
+    const p=document.querySelector('#docPreview .internalPaper .bodyText p') || document.querySelector('#docPreview .internalPaper');
+    const h=document.querySelector('#docPreview .internalPaper .memoHead h1');
+    if(!p){box.textContent='ตรวจฟอนต์: ยังไม่มีตัวอย่างเอกสาร';return}
+    const ps=getComputedStyle(p), hs=h?getComputedStyle(h):null;
+    const ok=document.fonts.check('16pt "MemoMasterPSK"');
+    box.textContent='ตรวจฟอนต์ v104: '+(ok?'โหลดไฟล์ TH SarabunPSK ในระบบแล้ว':'ฟอนต์ยังไม่โหลด')+' • เนื้อหา '+ps.fontFamily+' / '+ps.fontSize+' / weight '+ps.fontWeight+(hs?' • หัว '+hs.fontSize+' / weight '+hs.fontWeight:'');
+  }catch(err){box.textContent='ตรวจฟอนต์ v104: '+err.message}
+}
