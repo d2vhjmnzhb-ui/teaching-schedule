@@ -128,3 +128,72 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
  .document-only .docPaper.internalPaper{padding:17.5mm 20mm 20mm 30mm!important}
  .document-only .docPaper.lessonPlanPaper{padding-top:12mm!important}
 }
+
+/* v96 — internal document typography rebuilt from the supplied Word memo template.
+   Scope is intentionally limited to .internalPaper so no other system/module changes. */
+.docPaper.internalPaper{
+  padding:17.52mm 20mm 20mm 30mm;
+  font-family:'TH SarabunIT๙','TH Sarabun New',sans-serif!important;
+  font-size:16pt!important;
+  font-weight:400!important;
+  line-height:1!important;
+}
+.docPaper.internalPaper .memoHead{height:18mm;margin:0 0 0 0}
+.docPaper.internalPaper .memoHead img{top:0;height:15mm;width:auto}
+.docPaper.internalPaper .memoHead h1{
+  font-family:'TH SarabunPSK','TH Sarabun New',sans-serif!important;
+  font-size:29pt!important;line-height:29pt!important;font-weight:700!important;
+  top:3.1mm;left:50%;transform:translateX(-50%);
+}
+.docPaper.internalPaper .memoLine{
+  font-family:'TH SarabunIT๙','TH Sarabun New',sans-serif!important;
+  font-size:16pt!important;font-weight:400!important;
+  line-height:20pt!important;min-height:20pt!important;
+}
+.docPaper.internalPaper .memoLine b{
+  font-family:'TH SarabunPSK','TH Sarabun New',sans-serif!important;
+  font-size:20pt!important;line-height:20pt!important;font-weight:700!important;
+}
+.docPaper.internalPaper .bodyText{margin-top:0!important}
+.docPaper.internalPaper .bodyText p{
+  font-family:'TH SarabunIT๙','TH Sarabun New',sans-serif!important;
+  font-size:16pt!important;font-weight:400!important;
+  line-height:1!important;text-indent:12.7mm!important;
+  margin:0!important;padding:0!important;
+}
+.docPaper.internalPaper .signature,.docPaper.internalPaper .signature *{
+  font-family:'TH SarabunIT๙','TH Sarabun New',sans-serif!important;
+  font-size:16pt!important;font-weight:400!important;line-height:1!important;
+}
+.docPaper.internalPaper .signature{margin-top:8mm!important;margin-bottom:5mm!important}
+.docPaper.internalPaper .opinions,.docPaper.internalPaper .opinions *{
+  font-family:'TH SarabunIT๙','TH Sarabun New',sans-serif!important;
+  font-size:16pt;font-weight:400;line-height:1;
+}
+@media print{
+  @page{size:A4 portrait;margin:0}
+  .document-only .docPaper.internalPaper{padding:17.52mm 20mm 20mm 30mm!important}
+}
+
+/* v97 — iPad/PDF print lock. Internal documents only.
+   PDF export is the reference output: A4 physical dimensions, no Safari text inflation. */
+.docPaper.internalPaper,.docPaper.internalPaper *{
+ -webkit-text-size-adjust:none!important;text-size-adjust:none!important;
+ font-synthesis:none!important;
+}
+@media print{
+ html,body{width:210mm!important;min-width:210mm!important;-webkit-text-size-adjust:none!important;text-size-adjust:none!important}
+ .document-only #docPreview{width:210mm!important;max-width:210mm!important}
+ .document-only .docPaper.internalPaper{
+   width:210mm!important;max-width:210mm!important;min-height:297mm!important;
+   padding:17.52mm 20mm 20mm 30mm!important;
+   font-size:16pt!important;line-height:1!important;zoom:1!important;transform:none!important;
+   -webkit-print-color-adjust:exact;print-color-adjust:exact;
+ }
+ .document-only .docPaper.internalPaper .memoHead h1{font-size:29pt!important;line-height:29pt!important}
+ .document-only .docPaper.internalPaper .memoLine{font-size:16pt!important;line-height:20pt!important;min-height:20pt!important}
+ .document-only .docPaper.internalPaper .memoLine b{font-size:20pt!important;line-height:20pt!important}
+ .document-only .docPaper.internalPaper .bodyText p,
+ .document-only .docPaper.internalPaper .signature,
+ .document-only .docPaper.internalPaper .signature *{font-size:16pt!important;line-height:1!important}
+}
