@@ -3,7 +3,13 @@ window.downloadCollegePdf=async function(subject){
  const button=document.getElementById('downloadDocumentPdf'),status=document.getElementById('printStatus');
  if(button.disabled)return;button.disabled=true;const old=button.textContent;button.textContent='กำลังสร้าง PDF…';
  try{
-  if(!window.html2canvas||!window.PDFLib)throw new Error('ไม่พบไฟล์สร้าง PDF กรุณาอัปโหลดโฟลเดอร์ vendor ให้ครบ');
+  const load=src=>new Promise((ok,fail)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>fail(new Error('load '+src));document.head.appendChild(s);});
+  /* ไฟล์ใน vendor ไม่มี/โหลดไม่ได้ (เช่นอัปโหลดขึ้น GitHub ไม่ครบ) -> ใช้ CDN สำรอง */
+  if(!window.html2canvas){try{await load('vendor/html2canvas.min.js');}catch(e){}}
+  if(!window.html2canvas){try{await load('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');}catch(e){}}
+  if(!window.PDFLib){try{await load('vendor/pdf-lib.min.js');}catch(e){}}
+  if(!window.PDFLib){try{await load('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js');}catch(e){}}
+  if(!window.html2canvas||!window.PDFLib)throw new Error('โหลดตัวสร้าง PDF ไม่ได้ (โฟลเดอร์ vendor ไม่อยู่บนเว็บ และเชื่อมต่อ CDN ไม่ได้)');
   await Promise.race([document.fonts.ready,new Promise(resolve=>setTimeout(resolve,5000))]);
   await Promise.all([...document.images].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve()));
   const pdf=await PDFLib.PDFDocument.create();pdf.setTitle(subject);pdf.setCreator('College Document System');
