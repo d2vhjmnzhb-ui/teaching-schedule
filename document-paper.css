@@ -305,3 +305,49 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
    padding:10mm 22.5mm 25.4mm 27.5mm!important;
  }
 }
+
+/* v109 — targeted signer typography fix only.
+   Do not alter the approved memo body/layout. The nested .fitLine spans are
+   explicitly sized because older generic document rules can otherwise win. */
+.docPaper.internalPaper.memoV107 .signerStack,
+.docPaper.internalPaper.memoV107 .signerStack .signature,
+.docPaper.internalPaper.memoV107 .signerStack .signature .fitLine,
+.docPaper.internalPaper.memoV107 .signerStack .signature .fitLine span,
+.docPaper.internalPaper.memoV107 .signerStack .signature .positionLine,
+.docPaper.internalPaper.memoV107 .signerStack .signature .positionLine span,
+.docPaper.internalPaper.memoV107 .opinions .signature,
+.docPaper.internalPaper.memoV107 .opinions .signature .fitLine,
+.docPaper.internalPaper.memoV107 .opinions .signature .fitLine span,
+.docPaper.internalPaper.memoV107 .opinions .signature .positionLine,
+.docPaper.internalPaper.memoV107 .opinions .signature .positionLine span,
+.docPaper.internalPaper.memoV107 .planOpinions .signature,
+.docPaper.internalPaper.memoV107 .planOpinions .signature .fitLine,
+.docPaper.internalPaper.memoV107 .planOpinions .signature .fitLine span,
+.docPaper.internalPaper.memoV107 .planOpinions .signature .positionLine,
+.docPaper.internalPaper.memoV107 .planOpinions .signature .positionLine span{
+  font-family:'MemoV107'!important;
+  font-size:9.5pt!important;
+  font-weight:400!important;
+  font-style:normal!important;
+  font-synthesis:none!important;
+  line-height:1.02!important;
+  letter-spacing:0!important;
+  word-spacing:0!important;
+  text-shadow:none!important;
+  -webkit-text-stroke:0 transparent!important;
+}
+.docPaper.internalPaper.memoV107 .signerStack .signature{margin-top:4.5mm!important;margin-bottom:2.5mm!important}
+.docPaper.internalPaper.memoV107 .signerStack .signatureSpace{height:7mm!important}
+.docPaper.internalPaper.memoV107 .signerStack .fitLine{height:1.08em!important;min-height:1.08em!important;line-height:1.02!important}
+.docPaper.internalPaper.memoV107 .signerStack .positionLine{margin-top:.2mm!important}
+/* keep opinion headings/choices at the accepted memo size; only their signatures are reduced */
+.docPaper.internalPaper.memoV107 .opinions>div,
+.docPaper.internalPaper.memoV107 .planOpinion>.opinionTitle,
+.docPaper.internalPaper.memoV107 .planOpinion>.opinionChoices{
+  font-family:'MemoV107'!important;font-size:10.5pt!important;font-weight:400!important;line-height:1.08!important;
+}
+@media print{
+ .docPaper.internalPaper.memoV107 .signerStack .signature .fitLine span,
+ .docPaper.internalPaper.memoV107 .opinions .signature .fitLine span,
+ .docPaper.internalPaper.memoV107 .planOpinions .signature .fitLine span{font-size:9.5pt!important;font-weight:400!important}
+}
