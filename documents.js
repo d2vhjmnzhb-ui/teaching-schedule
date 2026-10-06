@@ -273,6 +273,6 @@ async function updateMemoFontDiagnostic(){
     if(!p){box.textContent='ตรวจฟอนต์: ยังไม่มีตัวอย่างเอกสาร';return}
     const ps=getComputedStyle(p), hs=h?getComputedStyle(h):null;
     const ok=document.fonts.check('16pt "MemoMasterPSK"');
-    box.textContent='ตรวจฟอนต์ v104: '+(ok?'โหลดไฟล์ TH SarabunPSK ในระบบแล้ว':'ฟอนต์ยังไม่โหลด')+' • เนื้อหา '+ps.fontFamily+' / '+ps.fontSize+' / weight '+ps.fontWeight+(hs?' • หัว '+hs.fontSize+' / weight '+hs.fontWeight:'');
-  }catch(err){box.textContent='ตรวจฟอนต์ v104: '+err.message}
+    box.textContent='ตรวจฟอนต์ v105: '+(ok?'โหลดไฟล์ TH Sarabun IT9 แบบบางในระบบแล้ว':'ฟอนต์ยังไม่โหลด')+' • เนื้อหา '+ps.fontFamily+' / '+ps.fontSize+' / weight '+ps.fontWeight+(hs?' • หัว '+hs.fontSize+' / weight '+hs.fontWeight:'');
+  }catch(err){box.textContent='ตรวจฟอนต์ v105: '+err.message}
 }

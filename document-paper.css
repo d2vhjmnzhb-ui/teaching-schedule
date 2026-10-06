@@ -152,8 +152,8 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 
 /* v104 — canonical embedded-font renderer for internal memo.
    Unique family aliases guarantee Safari uses the bundled TTF, not an installed/fallback font. */
-@font-face{font-family:'MemoMasterPSK';src:url('fonts/THSarabunPSK.ttf') format('truetype');font-style:normal;font-weight:400;font-display:block}
-@font-face{font-family:'MemoMasterPSK';src:url('fonts/THSarabunPSK-Bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:block}
+@font-face{font-family:'MemoMasterPSK';src:url('fonts/THSarabunIT9.ttf') format('truetype');font-style:normal;font-weight:400;font-display:block}
+@font-face{font-family:'MemoMasterPSK';src:url('fonts/THSarabunIT9-Bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:block}
 .docPaper.internalPaper,.docPaper.internalPaper *{
   font-family:'MemoMasterPSK'!important;
   font-synthesis:none!important;
@@ -173,3 +173,10 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 .docPaper.internalPaper .bodyText p,.docPaper.internalPaper .signature,.docPaper.internalPaper .signature *,
 .docPaper.internalPaper .opinions,.docPaper.internalPaper .opinions *{font-size:16pt!important;line-height:1!important}
 @media print{.docPaper.internalPaper,.docPaper.internalPaper *{font-family:'MemoMasterPSK'!important;font-synthesis:none!important;-webkit-text-size-adjust:none!important;text-size-adjust:none!important}}
+
+/* v105 — Thin Render: use the lighter TH Sarabun IT9 outlines already bundled in the project. */
+.docPaper.internalPaper .memoBody,.docPaper.internalPaper .memoBody *,
+.docPaper.internalPaper .memoClosing,.docPaper.internalPaper .memoClosing *,
+.docPaper.internalPaper .signatureBlock,.docPaper.internalPaper .signatureBlock *,
+.docPaper.internalPaper .opinionBlock,.docPaper.internalPaper .opinionBlock *{font-weight:400!important;font-synthesis:none!important}
+.docPaper.internalPaper .memoHead h1,.docPaper.internalPaper .memoLine>b,.docPaper.internalPaper .memoLine>span>b{font-weight:700!important}
