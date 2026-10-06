@@ -110,3 +110,21 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
 .docPaper.internalPaper .signerStack.pairLayout .signature:nth-child(odd){grid-column:1}
 .docPaper.internalPaper .signerStack.pairLayout .signature:nth-child(even){grid-column:2}
 @media(max-width:760px){.docPaper.internalPaper .signerStack.pairLayout{grid-template-columns:1fr 1fr}}
+
+/* v94: ตั้งขนาดตัวอักษรตามไฟล์ "แบบฟอร์มบันทึกข้อความ" (Word)
+   หัว "บันทึกข้อความ" 29 pt ตัวหนา | ป้าย ส่วนราชการ/ที่/วันที่/เรื่อง 20 pt ตัวหนา
+   เนื้อความ / เรียน / ผู้ลงนาม 16 pt ตัวปกติ | ครุฑสูง 1.5 ซม. | ระยะบรรทัด 1 เท่า
+   ขอบกระดาษ บน 1.75 / ซ้าย 3 / ขวา 2 / ล่าง 2 ซม. (ตามขอบหน้าในไฟล์ Word)
+   ขอบกระดาษทำด้วย padding ของแผ่น และ @page margin = 0 เพื่อให้เบราว์เซอร์ไม่พิมพ์ชื่อหน้า/วันที่/URL */
+.docPaper.internalPaper{padding:17.5mm 20mm 20mm 30mm;font-size:16pt;font-weight:400}
+.docPaper.internalPaper .memoHead h1,.docPaper.lessonPlanPaper .memoHead h1{font-size:29pt;line-height:35pt;font-weight:700}
+.docPaper.internalPaper .memoLine b{font-size:20pt;font-weight:700}
+.docPaper.internalPaper .memoLine,.docPaper.internalPaper .bodyText p,.docPaper.internalPaper .signature,.docPaper.internalPaper .signature *{font-weight:400}
+.docPaper.internalPaper .memoLine b{font-weight:700!important}
+.docPaper.internalPaper .memoHead h1{font-weight:700!important}
+@media print{
+ @page{size:A4 portrait;margin:0}
+ html,body{margin:0!important;padding:0!important}
+ .document-only .docPaper.internalPaper{padding:17.5mm 20mm 20mm 30mm!important}
+ .document-only .docPaper.lessonPlanPaper{padding-top:12mm!important}
+}
