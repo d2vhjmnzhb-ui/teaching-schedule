@@ -1930,7 +1930,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
 
   function ensureBox(){
     let box=document.getElementById('smartOptimizerBox');if(box)return box;
-    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">คำแนะนำปรับตารางอัจฉริยะ</div><div class="opt-sub">ลำดับคำแนะนำ: 1) วิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกันก่อน 2) ถ้าทำไม่ได้ จึงแยกเป็นช่วงตามชั่วโมง ท/ป เช่น 5 ชั่วโมง = 3+2 โดยไม่ซอยแบบสุ่ม</div><div id="smartOptimizerList"></div>';
+    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">คำแนะนำปรับตารางอัจฉริยะ</div><div class="opt-sub">ลำดับคำแนะนำ: 1) วิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกันก่อน โดยเช้า–บ่ายถือเป็นวันเดียวกัน ไม่จำเป็นต้องติดข้ามพักกลางวัน 2) ถ้าทำไม่ได้จริง จึงแยกเป็นช่วงตามชั่วโมง ท/ป เช่น 5 ชั่วโมง = 3+2 โดยแต่ละก้อนต้องต่อเนื่องกัน</div><div id="smartOptimizerList"></div>';
     const anchor=document.getElementById('subjectStatus')||document.getElementById('autoAll');
     if(anchor)anchor.parentElement.appendChild(box);return box;
   }
@@ -1951,8 +1951,10 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
   function renderSmartSuggestions(){
     ensureBox();const list=document.getElementById('smartOptimizerList');if(!list)return;const g=group();if(!g){list.innerHTML='';return}
     // v111: แก้เฉพาะคำแนะนำอัจฉริยะจาก v110 ให้ไม่เสนอแบบกว้าง/สุ่ม
+    // v112: วันเดียวกันหมายถึงทั้งเช้าและบ่ายของวันเดียวกัน ไม่บังคับให้ก้อนเช้า/บ่ายต้องติดกันข้ามพัก
     // ลำดับหลัก: (1) วิชาเดียวกันที่เป็นวิชายาว พยายามรวมให้อยู่วันเดียวกันก่อน
-    // (2) ถ้ารวมวันเดียวไม่ได้ จึงยอมแยกเป็นก้อน โดยยึดชั่วโมง ท/ป ของรายวิชาเป็นหลัก เช่น 5 ชม. = 3+2
+    // (2) แต่ละก้อนต้องต่อเนื่องกัน เช่น 3 คาบติด / 2 คาบติด
+    // (3) ถ้ารวมวันเดียวไม่ได้จริง จึงยอมแยกคนละวันตามชั่วโมง ท/ป เช่น 5 ชม. = 3+2
     const suggestions=[];
     const allBlocks=blocksForGroup(g.id);
     const bySubject=new Map();
@@ -1978,13 +1980,16 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         for(const b of blocks){
           for(const target of blocks){
             if(target===b||target.d===b.d)continue;
-            const candidates=[target.start-b.keys.length,target.start+target.keys.length,1,6,2,3,4,7,8];
+            // v112: เป้าหมายหลักคือให้อยู่วันเดียวกัน แม้ก้อนหนึ่งอยู่เช้าและอีกก้อนอยู่บ่าย
+            // ก้อนที่ย้ายยังต้องต่อเนื่องกันเองเสมอ แต่ไม่บังคับให้ติดกับก้อนเดิมข้ามพักกลางวัน
+            const candidates=[target.start-b.keys.length,target.start+target.keys.length,1,2,3,4,5,6,7,8,9,10,11,12];
             for(const st of [...new Set(candidates)]){
               if(st<1||st+b.keys.length-1>12)continue;
               const dest=lessonCanMove(g.id,s,b.keys,target.d,st);if(!dest)continue;
-              if(!adjacentToSubject(g.id,target.d,st,b.keys.length,s.id,b.keys))continue;
-              const gain=10000-(Math.abs(st-target.start)*10)+blockScore(target.d,st,b.keys.length);
-              if(!best||gain>best.gain)best={dest,d:target.d,start:st,gain,priority:1};
+              const adjacent=adjacentToSubject(g.id,target.d,st,b.keys.length,s.id,b.keys);
+              // ให้อยู่วันเดียวกันสำคัญที่สุด; ถ้าต่อกับก้อนเดิมได้ให้คะแนนเพิ่ม แต่ไม่ใช่เงื่อนไขบังคับ
+              const gain=10000+(adjacent?500:0)+blockScore(target.d,st,b.keys.length);
+              if(!best||gain>best.gain)best={dest,d:target.d,start:st,gain,priority:1,adjacent};
             }
           }
         }
@@ -2017,16 +2022,16 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
     }
     suggestions.sort((a,b)=>a.priority-b.priority||((b.best?.gain||0)-(a.best?.gain||0)));
     window.__smartSuggestions=suggestions;
-    if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้เป็นไปตามหลักแล้ว: วิชายาวอยู่วันเดียวกันเท่าที่จัดได้ และกรณีจำเป็นต้องแยกใช้สัดส่วนชั่วโมง ท/ป ของรายวิชา</div>';return}
+    if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้เป็นไปตามหลักแล้ว: วิชายาวอยู่วันเดียวกันเท่าที่จัดได้ (เช้า–บ่ายได้) และถ้าจำเป็นต้องแยกจึงใช้สัดส่วนชั่วโมง ท/ป โดยแต่ละก้อนต่อเนื่องกัน</div>';return}
     list.innerHTML=suggestions.slice(0,6).map((x,i)=>{
       if(x.type==='split')return `<div class="opt-item"><div><b>แนะนำรูปแบบ: ${esc(x.s.code)} ${esc(x.s.name)}</b><div>รวม ${Number(x.s.t||0)+Number(x.s.p||0)} ชั่วโมง • ท ${Number(x.s.t||0)} / ป ${Number(x.s.p||0)}</div><div class="why">เหตุผล: ไม่พบตำแหน่งที่รวมวิชานี้ให้อยู่วันเดียวกันได้ จึงควรแยกเป็น ${esc(x.parts.join(' + '))} ชั่วโมง ตาม ท/ป แทนการซอยแบบสุ่ม</div></div></div>`;
-      return `<div class="opt-item"><div><b>แนะนำ: รวม ${esc(x.s.code)} ${esc(x.s.name)} ให้อยู่วันเดียวกัน</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: วิชาเดียวกันที่เป็นวิชายาวควรอยู่วันเดียวกันก่อนเป็นอันดับแรก</div></div><button type="button" class="btn light" data-opt="${i}">ดูและย้าย</button></div>`;
+      return `<div class="opt-item"><div><b>แนะนำ: รวม ${esc(x.s.code)} ${esc(x.s.name)} ให้อยู่วันเดียวกัน</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: วิชาเดียวกันที่เป็นวิชายาวควรอยู่วันเดียวกันก่อนเป็นอันดับแรก โดยเช้าและบ่ายของวันเดียวกันถือว่าอยู่วันเดียวกัน</div></div><button type="button" class="btn light" data-opt="${i}">ดูและย้าย</button></div>`;
     }).join('');
     list.querySelectorAll('[data-opt]').forEach(btn=>btn.onclick=(ev)=>{
       ev.preventDefault();ev.stopPropagation();const x=suggestions[Number(btn.dataset.opt)];if(!x||x.type!=='move')return;
       const from=`${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''}`;
       const to=`${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}`;
-      const ok=window.confirm(`ตรวจสอบคำแนะนำก่อนย้าย\n\n${x.s.code} ${x.s.name}\nจาก: ${from}\nไป: ${to}\n\nเหตุผล: รวมวิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกัน\n\nกด ตกลง เพื่อย้ายจริง`);if(!ok)return;
+      const ok=window.confirm(`ตรวจสอบคำแนะนำก่อนย้าย\n\n${x.s.code} ${x.s.name}\nจาก: ${from}\nไป: ${to}\n\nเหตุผล: รวมวิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกัน (เช้า–บ่ายได้)\n\nกด ตกลง เพื่อย้ายจริง`);if(!ok)return;
       const before={};x.b.keys.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);x.best.dest.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);
       const vals=x.b.keys.map(k=>state.lessons[k]&&{...state.lessons[k]}).filter(Boolean);if(!vals.length){alert('ไม่พบคาบต้นทาง กรุณาให้ระบบคำนวณคำแนะนำใหม่');renderSmartSuggestions();return}
       x.b.keys.forEach(k=>delete state.lessons[k]);x.best.dest.forEach((k,i)=>state.lessons[k]={...(vals[Math.min(i,vals.length-1)]||vals[0])});
