@@ -1,0 +1,1 @@
+v103: internal-document visual font calibration only. Body/signature/opinions 13pt, memo labels 16.25pt, title 23.5pt. TH SarabunPSK regular remains 400; bold only title/labels. No other system logic changed.

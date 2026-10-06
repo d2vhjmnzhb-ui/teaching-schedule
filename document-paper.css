@@ -196,3 +196,48 @@ body.document-only{margin:0;background:#e4eaf0}.document-only #docPreview{paddin
   .docPaper.internalPaper,
   .docPaper.internalPaper *{font-synthesis:none!important;-webkit-text-size-adjust:none!important;text-size-adjust:none!important}
 }
+
+/* v103 — visual calibration against the user's printed Word master.
+   Web/iPad TH SarabunPSK renders optically larger/heavier than the printed Word sample.
+   Calibrate only internal memo typography; geometry and other modules stay untouched. */
+.docPaper.internalPaper{
+  font-family:'TH SarabunPSK',sans-serif!important;
+  font-size:13pt!important;
+  font-weight:400!important;
+  line-height:1.05!important;
+  font-synthesis:none!important;
+  -webkit-text-size-adjust:100%!important;
+  text-size-adjust:100%!important;
+}
+.docPaper.internalPaper .memoHead h1{
+  font-family:'TH SarabunPSK',sans-serif!important;
+  font-size:23.5pt!important;
+  line-height:23.5pt!important;
+  font-weight:700!important;
+  font-synthesis:none!important;
+}
+.docPaper.internalPaper .memoLine{
+  font-family:'TH SarabunPSK',sans-serif!important;
+  font-size:13pt!important;
+  line-height:16.25pt!important;
+  font-weight:400!important;
+}
+.docPaper.internalPaper .memoLine b,
+.docPaper.internalPaper .memoLine > span > b{
+  font-size:16.25pt!important;
+  line-height:16.25pt!important;
+  font-weight:700!important;
+}
+.docPaper.internalPaper .bodyText p,
+.docPaper.internalPaper .signature,
+.docPaper.internalPaper .signature *,
+.docPaper.internalPaper .opinions,
+.docPaper.internalPaper .opinions *,
+.docPaper.internalPaper .planOpinions,
+.docPaper.internalPaper .planOpinions *{
+  font-family:'TH SarabunPSK',sans-serif!important;
+  font-size:13pt!important;
+  line-height:1.05!important;
+  font-weight:400!important;
+  font-synthesis:none!important;
+}
