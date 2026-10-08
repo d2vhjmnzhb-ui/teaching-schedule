@@ -1378,6 +1378,80 @@ function render(){const box=$('bkSubjectTeacherList');if(!box)return;const ss=su
 })();
 </script>
 <link rel="stylesheet" href="schedule-borders.css?v=75">
+
+<script id="v114-schedule-integrity-fix">
+(()=>{
+ const byId=id=>document.getElementById(id);
+ const same=(a,b)=>String(a??'')===String(b??'');
+ function activeLessons(){return Object.entries(state.lessons||{}).filter(([k,l])=>same(parseKey(k).pid,state.activePlanId));}
+ function lessonSubject(l){return state.subjects.find(s=>same(s.id,l?.subjectId));}
+ function lessonTeacher(l){return state.teachers.find(t=>same(t.id,l?.teacherId));}
+ function lessonRoom(l){return state.rooms.find(r=>same(r.id,l?.roomId));}
+ function lessonGroupFromKey(k){const q=parseKey(k);return state.groups.find(g=>same(g.id,q.gid));}
+
+ // 1) ห้องเรียนยึดกับรายวิชาที่เลือก ไม่ยึดจาก "ครูคนเดิม" เพียงอย่างเดียว
+ function syncSubjectAssignment(){
+   const sp=byId('subjectPick'),tp=byId('teacherPick'),rp=byId('roomPick'); if(!sp||!tp||!rp)return;
+   const s=lessonSubject({subjectId:sp.value}); if(!s)return;
+   if(s.teacherId&&[...tp.options].some(o=>same(o.value,s.teacherId)))tp.value=s.teacherId;
+   const tid=tp.value||s.teacherId||'';
+   const allowed=(state.rooms||[]).filter(r=>!r.teacherId||same(r.teacherId,tid)||((state.teachers.find(t=>same(t.id,tid))?.roomIds||[]).some(id=>same(id,r.id))));
+   const ids=allowed.map(r=>r.id); const preferred=ids.some(id=>same(id,s.roomId))?s.roomId:(ids[0]||s.roomId||'');
+   rp.innerHTML=(allowed.length?allowed:(state.rooms||[])).map(r=>`<option value="${r.id}">${esc(r.name||'')}</option>`).join('');
+   if([...rp.options].some(o=>same(o.value,preferred)))rp.value=preferred;
+ }
+ document.addEventListener('change',e=>{if(e.target?.id==='subjectPick')setTimeout(syncSubjectAssignment,0)},true);
+
+ // 2) ตารางครูอ่านจาก lessons จริงทั้งหมดในแผน ไม่ตกหล่นเพราะชนิด id หรือการรวมกลุ่ม
+ window.teacherLessonAt=function(tid,di,p){
+   const out=[];
+   for(const [k,l] of activeLessons()){
+     const q=parseKey(k); if(q.d!==di||q.p!==p||!same(l.teacherId,tid))continue;
+     out.push({...l,groupId:q.gid,__key:k});
+   }
+   return out;
+ };
+ window.makeTeacherCombinedTable=function(tid){
+   let h='<table class="schedule-paper"><thead><tr><th class="day">วัน / คาบ</th><th class="assembly">กิจกรรม<br>หน้าเสาธง</th>'+Array.from({length:12},(_,i)=>`<th><div class="period-no">${i+1}</div><div class="period-time">${periodTimes[i]}</div></th>`).join('')+'</tr></thead><tbody>';
+   days.forEach((d,di)=>{h+=`<tr><td class="day">${d}</td><td class="assembly assembly-vertical">กิจกรรมหน้าเสาธง</td>`;for(let p=1;p<=12;p++){
+     const locked=p===5,raw=teacherLessonAt(tid,di,p),merged=[];
+     raw.forEach(l=>{let x=merged.find(a=>same(a.subjectId,l.subjectId)&&same(a.roomId,l.roomId));if(x)x.groupIds.push(l.groupId);else merged.push({...l,groupIds:[l.groupId]})});
+     const html=merged.map(l=>lessonHtml(l,true)).join('<hr>'); h+=`<td class="slot ${locked?'locked':''} ${merged.length>1?'conflict':''}">${locked?'พักกลางวัน':html}</td>`;
+   }h+='</tr>'}); return h+'</tbody></table>';
+ };
+
+ // 4) ปุ่มแก้ไขครู/ห้องของคาบ โดยไม่ต้องลบแล้วลงใหม่
+ function addEditButtons(){
+   const table=byId('studentTable'); if(!table)return;
+   table.querySelectorAll('.slot[data-key]').forEach(td=>{
+     const k=td.dataset.key,l=state.lessons[k]; if(!l||td.querySelector('.v114-edit'))return;
+     const b=document.createElement('button'); b.type='button';b.className='v114-edit';b.textContent='แก้ครู/ห้อง';
+     b.onclick=e=>{e.preventDefault();e.stopPropagation();editLesson(k)}; td.appendChild(b);
+   });
+ }
+ function choose(label,items,current){
+   const lines=items.map((x,i)=>`${i+1}. ${x.name||x.code||''}`).join('\n');
+   const cur=Math.max(0,items.findIndex(x=>same(x.id,current))); const ans=prompt(`${label}\n${lines}\n\nพิมพ์หมายเลข`,String(cur+1));
+   if(ans===null)return null; const n=Number(ans)-1; return items[n]||null;
+ }
+ function editLesson(k){
+   const l=state.lessons[k];if(!l)return;const q=parseKey(k);
+   const nt=choose('เลือกครูผู้สอน',state.teachers||[],l.teacherId);if(!nt)return;
+   const rooms=(state.rooms||[]).filter(r=>!r.teacherId||same(r.teacherId,nt.id)||((nt.roomIds||[]).some(id=>same(id,r.id))));
+   const nr=choose('เลือกห้องเรียน',rooms.length?rooms:(state.rooms||[]),l.roomId);if(!nr)return;
+   const trial={...l,teacherId:nt.id,roomId:nr.id}; const c=conflictsFor(q.gid,q.d,q.p,trial,k);
+   if(c.length)return alert('ยังบันทึกไม่ได้ เพราะ '+c.join(' / '));
+   l.teacherId=nt.id;l.roomId=nr.id;
+   const s=lessonSubject(l);if(s){s.teacherId=nt.id;s.roomId=nr.id}
+   if(typeof save==='function')save();renderAll();
+ }
+ const oldRenderAll=window.renderAll; window.renderAll=function(){oldRenderAll();setTimeout(()=>{syncSubjectAssignment();addEditButtons();const btn=byId('runScheduleAnalysisBtn'),g=typeof group==='function'?group():null;if(btn&&g){const pending=(typeof subjectsForCurrentGroup==='function'?subjectsForCurrentGroup():planSubjects()).some(s=>{const need=Number(s.t||0)+Number(s.p||0);let n=0;for(const [k,l] of activeLessons()){const q=parseKey(k);if(same(q.gid,g.id)&&same(l.subjectId,s.id))n++}return n<need});btn.disabled=!pending;btn.textContent=pending?'วิเคราะห์หาช่องลงตาราง':'จัดรายวิชาครบแล้ว'}} ,0)};
+
+ const style=document.createElement('style');style.textContent=`.v114-edit{display:block;margin:4px auto 0;padding:2px 5px;border:1px solid #94a3b8;border-radius:6px;background:#fff;font:inherit;font-size:10px;cursor:pointer}.v114-edit:hover{background:#f1f5f9}`;document.head.appendChild(style);
+ setTimeout(()=>{syncSubjectAssignment();addEditButtons();},100);
+})();
+</script>
+
 </body></html>
 <!-- v19 student-first scheduling refinements -->
 <style>
@@ -1930,7 +2004,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
 
   function ensureBox(){
     let box=document.getElementById('smartOptimizerBox');if(box)return box;
-    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">คำแนะนำปรับตารางอัจฉริยะ</div><div class="opt-sub">ลำดับคำแนะนำ: 1) วิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกันก่อน โดยเช้า–บ่ายถือเป็นวันเดียวกัน ไม่จำเป็นต้องติดข้ามพักกลางวัน 2) ถ้าทำไม่ได้จริง จึงแยกเป็นช่วงตามชั่วโมง ท/ป เช่น 5 ชั่วโมง = 3+2 โดยแต่ละก้อนต้องต่อเนื่องกัน</div><div id="smartOptimizerList"></div>';
+    box=document.createElement('div');box.id='smartOptimizerBox';box.innerHTML='<div class="opt-title">ตัวช่วยเมื่อลงตารางไม่ได้</div><div class="opt-sub">เมื่อมีวิชายังลงไม่ครบ ให้กดวิเคราะห์ ระบบจะตรวจทุกครู ทุกกลุ่ม และห้องเรียน เพื่อหาแผนย้าย/สลับเปิดช่อง โดยยังรักษากฎวันเดียวกัน เช้า–บ่าย และ ท/ป</div><div class="actions"><button type="button" class="btn primary" id="runScheduleAnalysisBtn">วิเคราะห์หาช่องลงตาราง</button></div><div id="smartOptimizerList" style="display:none"></div>';
     const anchor=document.getElementById('subjectStatus')||document.getElementById('autoAll');
     if(anchor)anchor.parentElement.appendChild(box);return box;
   }
@@ -1949,9 +2023,9 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
     return arr;
   }
   function renderSmartSuggestions(){
-    ensureBox();const list=document.getElementById('smartOptimizerList');if(!list)return;const g=group();if(!g){list.innerHTML='';return}
+    ensureBox();const list=document.getElementById('smartOptimizerList');if(!list)return;list.style.display='block';const g=group();if(!g){list.innerHTML='';return}
     // v111: แก้เฉพาะคำแนะนำอัจฉริยะจาก v110 ให้ไม่เสนอแบบกว้าง/สุ่ม
-    // v112: วันเดียวกันหมายถึงทั้งเช้าและบ่ายของวันเดียวกัน ไม่บังคับให้ก้อนเช้า/บ่ายต้องติดกันข้ามพัก
+    // v113: วันเดียวกันหมายถึงทั้งเช้าและบ่ายของวันเดียวกัน ไม่บังคับให้ก้อนเช้า/บ่ายต้องติดกันข้ามพัก
     // ลำดับหลัก: (1) วิชาเดียวกันที่เป็นวิชายาว พยายามรวมให้อยู่วันเดียวกันก่อน
     // (2) แต่ละก้อนต้องต่อเนื่องกัน เช่น 3 คาบติด / 2 คาบติด
     // (3) ถ้ารวมวันเดียวไม่ได้จริง จึงยอมแยกคนละวันตามชั่วโมง ท/ป เช่น 5 ชม. = 3+2
@@ -1980,7 +2054,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         for(const b of blocks){
           for(const target of blocks){
             if(target===b||target.d===b.d)continue;
-            // v112: เป้าหมายหลักคือให้อยู่วันเดียวกัน แม้ก้อนหนึ่งอยู่เช้าและอีกก้อนอยู่บ่าย
+            // v113: เป้าหมายหลักคือให้อยู่วันเดียวกัน แม้ก้อนหนึ่งอยู่เช้าและอีกก้อนอยู่บ่าย
             // ก้อนที่ย้ายยังต้องต่อเนื่องกันเองเสมอ แต่ไม่บังคับให้ติดกับก้อนเดิมข้ามพักกลางวัน
             const candidates=[target.start-b.keys.length,target.start+target.keys.length,1,2,3,4,5,6,7,8,9,10,11,12];
             for(const st of [...new Set(candidates)]){
@@ -2020,15 +2094,124 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         if(actual.join(',')!==wanted.join(','))suggestions.push({type:'split',s,parts,priority:2,blocks});
       }
     }
+
+    // v113: ถ้ายังมีวิชาลงไม่ครบ ให้ค้นหา "ทางเปิดช่อง" ข้ามครู/ข้ามกลุ่มทั้งแผนก
+    // ย้ายเฉพาะก้อนวิชาเดิมทั้งก้อน และตรวจครู+กลุ่มนักเรียนทุกครั้งก่อนเสนอ
+    const requiredHoursV113=s=>Number(s.t||0)+Number(s.p||0);
+    const usedV113=(sid,gid)=>Object.entries(state.lessons).reduce((n,[k,l])=>{const q=parseKey(k);return n+(q.pid===state.activePlanId&&q.gid===gid&&l.subjectId===sid?1:0)},0);
+    const allPlanBlocksV113=()=>{
+      const out=[];
+      for(const gg of groupsForPlan())out.push(...blocksForGroup(gg.id));
+      return out;
+    };
+    const sameBlockV113=(a,b)=>a&&b&&a.gid===b.gid&&a.d===b.d&&a.start===b.start&&a.l.subjectId===b.l.subjectId&&a.l.teacherId===b.l.teacherId;
+    const blockAtV113=(blocks,k)=>blocks.find(b=>b.keys.includes(k));
+    function freeForLessonV113(gid,d,p,lesson,ignore){
+      const dk=key(gid,d,p); if(state.lessons[dk]&&!ignore.has(dk))return false;
+      for(const [ok,ol] of Object.entries(state.lessons)){
+        if(ignore.has(ok))continue; const q=parseKey(ok);
+        if(q.pid!==state.activePlanId||q.d!==d||q.p!==p)continue;
+        if(q.gid===gid)return false;
+        if(lesson.teacherId&&ol.teacherId===lesson.teacherId)return false;
+      }
+      return true;
+    }
+    function relocateOptionsV113(b,reserved){
+      const s=subject(b.l.subjectId); if(!s||isActivitySubject(s))return [];
+      const len=b.keys.length,ignore=new Set([...b.keys,...reserved]),opts=[];
+      for(let d=0;d<5;d++)for(let st=1;st+len-1<=12;st++){
+        const ps=Array.from({length:len},(_,i)=>st+i);
+        if(ps.some(p=>!validPeriod(d,p,s)))continue;
+        const dest=ps.map(p=>key(b.gid,d,p));
+        if(dest.some(k=>reserved.has(k)))continue;
+        if(dest.every((k,i)=>freeForLessonV113(b.gid,d,st+i,b.l,ignore))){
+          opts.push({d,start:st,dest,score:blockScore(d,st,len)-(d===b.d?0:30)});
+        }
+      }
+      return opts.sort((a,b)=>b.score-a.score).slice(0,12);
+    }
+    function subjectPlacementsV113(s,gid,need){
+      let parts=desiredParts(s).filter(Boolean);
+      if(parts.reduce((a,b)=>a+b,0)!==need){parts=[];let left=need;while(left>0){const n=Math.min(3,left);parts.push(n);left-=n}}
+      const out=[];
+      for(let d=0;d<5;d++){
+        const startsByPart=parts.map(len=>Array.from({length:13-len},(_,i)=>i+1).filter(st=>Array.from({length:len},(_,j)=>st+j).every(p=>validPeriod(d,p,s))));
+        const walk=(i,chosen,usedP)=>{
+          if(i===parts.length){out.push({d,parts:chosen.map((st,j)=>({start:st,len:parts[j],keys:Array.from({length:parts[j]},(_,x)=>key(gid,d,st+x))}))});return}
+          for(const st of startsByPart[i]){const ps=Array.from({length:parts[i]},(_,x)=>st+x);if(ps.some(p=>usedP.has(p)))continue;const nu=new Set(usedP);ps.forEach(p=>nu.add(p));walk(i+1,[...chosen,st],nu)}
+        }; walk(0,[],new Set());
+      }
+      return out;
+    }
+    function findCrossTeacherPlanV113(s,gid,need){
+      const blocks=allPlanBlocksV113(),placements=subjectPlacementsV113(s,gid,need),plans=[];
+      for(const pl of placements){
+        const targetKeys=pl.parts.flatMap(x=>x.keys),reserved=new Set(targetKeys),blocking=[];
+        for(const k of targetKeys){const b=blockAtV113(blocks,k);if(b&&!blocking.some(x=>sameBlockV113(x,b)))blocking.push(b)}
+        // ให้คำแนะนำอ่านง่ายและปลอดภัย: เปิดช่องด้วยการย้ายไม่เกิน 2 ก้อนต่อแผน
+        if(!blocking.length||blocking.length>2)continue;
+        // ห้ามรื้อวิชากิจกรรมบังคับ และห้ามย้ายก้อนที่ยาวเกินจำเป็น
+        if(blocking.some(b=>{const bs=subject(b.l.subjectId);return !bs||isActivitySubject(bs)}))continue;
+        const options=blocking.map(b=>relocateOptionsV113(b,reserved)); if(options.some(x=>!x.length))continue;
+        for(const o1 of options[0]){
+          if(blocking.length===1){plans.push({pl,blocking,moves:[o1],score:20000+o1.score});break}
+          for(const o2 of options[1]){
+            const d1=new Set(o1.dest); if(o2.dest.some(k=>d1.has(k)))continue;
+            // ถ้าปลายทางสองก้อนเป็นคาบเดียวกัน ให้ตรวจครูของสองก้อนด้วย
+            let clash=false;
+            for(let i=0;i<o1.dest.length;i++)for(let j=0;j<o2.dest.length;j++)if(o1.dest[i]===o2.dest[j])clash=true;
+            if(clash)continue;
+            plans.push({pl,blocking,moves:[o1,o2],score:19000+o1.score+o2.score});break
+          }
+          if(plans.length)break;
+        }
+        if(plans.length>=8)break;
+      }
+      return plans.sort((a,b)=>b.score-a.score)[0]||null;
+    }
+    // ตรวจทุกห้อง ไม่ใช่เฉพาะห้องที่กำลังเปิดอยู่ เพื่อให้คำแนะนำครอบคลุมทุกครู/ทุกกลุ่ม
+    const keepGidV113=state.currentGroupId;
+    for(const gg of groupsForPlan()){
+      state.currentGroupId=gg.id;
+      for(const ss of subjectsForCurrentGroup()){
+        if(isActivitySubject(ss))continue;
+        const need=requiredHoursV113(ss)-usedV113(ss.id,gg.id); if(need<=0)continue;
+        const plan=findCrossTeacherPlanV113(ss,gg.id,need); if(!plan)continue;
+        suggestions.push({type:'cross',s:ss,gid:gg.id,gname:gg.name||gg.code||'กลุ่มเรียน',need,plan,priority:3});
+      }
+    }
+    state.currentGroupId=keepGidV113;
+
     suggestions.sort((a,b)=>a.priority-b.priority||((b.best?.gain||0)-(a.best?.gain||0)));
     window.__smartSuggestions=suggestions;
     if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้เป็นไปตามหลักแล้ว: วิชายาวอยู่วันเดียวกันเท่าที่จัดได้ (เช้า–บ่ายได้) และถ้าจำเป็นต้องแยกจึงใช้สัดส่วนชั่วโมง ท/ป โดยแต่ละก้อนต่อเนื่องกัน</div>';return}
     list.innerHTML=suggestions.slice(0,6).map((x,i)=>{
+      if(x.type==='cross'){
+        const mv=x.plan.blocking.map((b,j)=>{const o=x.plan.moves[j],bs=subject(b.l.subjectId),gg=groupsForPlan().find(z=>z.id===b.gid);return `${esc(bs?.code||'')} ${esc(bs?.name||'')} (${esc(gg?.name||gg?.code||'')}) : ${dayNames[b.d]} ${b.start}${b.keys.length>1?'–'+(b.start+b.keys.length-1):''} → ${dayNames[o.d]} ${o.start}${b.keys.length>1?'–'+(o.start+b.keys.length-1):''}`}).join('<br>');
+        const tgt=x.plan.pl.parts.map(z=>`${dayNames[x.plan.pl.d]} ${z.start}${z.len>1?'–'+(z.start+z.len-1):''}`).join(' + ');
+        return `<div class="opt-item"><div><b>เปิดช่องให้ ${esc(x.gname)}: ${esc(x.s.code)} ${esc(x.s.name)} (${x.need} ชม.)</b><div>${mv}</div><div><b>แล้วลงวิชาที่เหลือ:</b> ${tgt}</div><div class="why">เหตุผล: ตารางเดิมไม่มีช่องว่างพอ ระบบจึงวิเคราะห์ตารางครูและกลุ่มเรียนอื่นเพื่อย้ายก้อนวิชาที่ขวางไปยังช่องที่ไม่ชน แล้วเปิดพื้นที่ให้วิชาที่ยังลงไม่ครบ</div></div><button type="button" class="btn light" data-opt="${i}">ดูแผนสลับ</button></div>`;
+      }
       if(x.type==='split')return `<div class="opt-item"><div><b>แนะนำรูปแบบ: ${esc(x.s.code)} ${esc(x.s.name)}</b><div>รวม ${Number(x.s.t||0)+Number(x.s.p||0)} ชั่วโมง • ท ${Number(x.s.t||0)} / ป ${Number(x.s.p||0)}</div><div class="why">เหตุผล: ไม่พบตำแหน่งที่รวมวิชานี้ให้อยู่วันเดียวกันได้ จึงควรแยกเป็น ${esc(x.parts.join(' + '))} ชั่วโมง ตาม ท/ป แทนการซอยแบบสุ่ม</div></div></div>`;
       return `<div class="opt-item"><div><b>แนะนำ: รวม ${esc(x.s.code)} ${esc(x.s.name)} ให้อยู่วันเดียวกัน</b><div>${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''} → ${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}</div><div class="why">เหตุผล: วิชาเดียวกันที่เป็นวิชายาวควรอยู่วันเดียวกันก่อนเป็นอันดับแรก โดยเช้าและบ่ายของวันเดียวกันถือว่าอยู่วันเดียวกัน</div></div><button type="button" class="btn light" data-opt="${i}">ดูและย้าย</button></div>`;
     }).join('');
     list.querySelectorAll('[data-opt]').forEach(btn=>btn.onclick=(ev)=>{
-      ev.preventDefault();ev.stopPropagation();const x=suggestions[Number(btn.dataset.opt)];if(!x||x.type!=='move')return;
+      ev.preventDefault();ev.stopPropagation();const x=suggestions[Number(btn.dataset.opt)];if(!x)return;
+      if(x.type==='cross'){
+        const lines=x.plan.blocking.map((b,j)=>{const o=x.plan.moves[j],bs=subject(b.l.subjectId),gg=groupsForPlan().find(z=>z.id===b.gid);return `• ${bs?.code||''} ${bs?.name||''} (${gg?.name||gg?.code||''})\n  ${dayNames[b.d]} คาบ ${b.start}${b.keys.length>1?'–'+(b.start+b.keys.length-1):''} → ${dayNames[o.d]} คาบ ${o.start}${b.keys.length>1?'–'+(o.start+b.keys.length-1):''}`}).join('\n');
+        const tgt=x.plan.pl.parts.map(z=>`${dayNames[x.plan.pl.d]} คาบ ${z.start}${z.len>1?'–'+(z.start+z.len-1):''}`).join(' + ');
+        const ok=window.confirm(`แผนสลับเพื่อเปิดช่องให้ ${x.gname}\n${x.s.code} ${x.s.name} เหลือ ${x.need} ชั่วโมง\n\n${lines}\n\nจากนั้นลงวิชาที่เหลือที่: ${tgt}\n\nระบบจะย้ายทั้งก้อนและตรวจไม่ให้ครู/กลุ่มเรียนชน กด ตกลง เพื่อใช้แผนนี้`);if(!ok)return;
+        const before={};
+        x.plan.blocking.forEach((b,j)=>{b.keys.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);x.plan.moves[j].dest.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null)});
+        x.plan.pl.parts.flatMap(z=>z.keys).forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);
+        // ย้ายก้อนที่ขวางออกก่อน
+        x.plan.blocking.forEach(b=>b.keys.forEach(k=>delete state.lessons[k]));
+        x.plan.blocking.forEach((b,j)=>{const o=x.plan.moves[j],val={...b.l};o.dest.forEach(k=>state.lessons[k]={...val})});
+        // ลงวิชาที่ค้างในช่องที่เปิดได้
+        const trial={planId:state.activePlanId,groupId:x.gid,subjectId:x.s.id,teacherId:x.s.teacherId||'',roomId:x.s.roomId||''};
+        x.plan.pl.parts.flatMap(z=>z.keys).forEach(k=>state.lessons[k]={...trial});
+        window.__lastSmartMove={before,label:`แผนสลับ ${x.s.code} ${x.s.name}`};saveLocal();renderAll();return;
+      }
+      if(x.type!=='move')return;
       const from=`${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''}`;
       const to=`${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}`;
       const ok=window.confirm(`ตรวจสอบคำแนะนำก่อนย้าย\n\n${x.s.code} ${x.s.name}\nจาก: ${from}\nไป: ${to}\n\nเหตุผล: รวมวิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกัน (เช้า–บ่ายได้)\n\nกด ตกลง เพื่อย้ายจริง`);if(!ok)return;
@@ -2039,8 +2222,9 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
       setTimeout(()=>{const box=ensureBox(),undo=document.createElement('div');undo.id='smartUndo';undo.className='opt-good';undo.innerHTML=`ย้าย ${esc(window.__lastSmartMove.label)} แล้ว: ${esc(from)} → ${esc(to)} <button type="button" class="btn light" id="smartUndoBtn">ย้อนกลับการย้าย</button>`;const old=document.getElementById('smartUndo');if(old)old.remove();box.prepend(undo);document.getElementById('smartUndoBtn').onclick=(e)=>{e.preventDefault();const m=window.__lastSmartMove;if(!m)return;Object.entries(m.before).forEach(([k,v])=>{if(v)state.lessons[k]={...v};else delete state.lessons[k]});window.__lastSmartMove=null;saveLocal();renderAll();}},30);
     });
   }
-  const prevRenderAll=renderAll;renderAll=function(){prevRenderAll();setTimeout(renderSmartSuggestions,0)};
-  ensureBox();renderSmartSuggestions();
+  const prevRenderAll=renderAll;renderAll=function(){prevRenderAll();const list=document.getElementById('smartOptimizerList');if(list){list.style.display='none';list.innerHTML=''} };
+  window.runScheduleAnalysis=renderSmartSuggestions;
+  const sb=ensureBox(); const rb=document.getElementById('runScheduleAnalysisBtn'); if(rb)rb.onclick=(e)=>{e.preventDefault();renderSmartSuggestions()};
 })();
 </script>
 
@@ -2800,4 +2984,4 @@ const boot=()=>{ensure();document.querySelector('[data-page="bookPage"]')?.addEv
  #printPage *{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
 }
 </style>
-<link rel="stylesheet" href="schedule-layout.css?v=76">
+<link rel="stylesheet" href="schedule-layout.css?v=114">
