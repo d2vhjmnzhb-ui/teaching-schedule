@@ -385,15 +385,16 @@ migrateState();
    state.plans=state.plans.filter(p=>!remap[p.id]);
  }
  // ลบรายวิชาซ้ำในแผนเดียวกัน โดยเทียบรหัสวิชา
- const seen=new Set();state.subjects=state.subjects.filter(s=>{const k=`${s.planId}|${String(s.code||'').trim()}`;if(!s.code||!seen.has(k)){seen.add(k);return true}return false});
+ const seen=new Map(),subjectRemap=new Map();state.subjects=state.subjects.filter(s=>{const k=`${s.planId}|${String(s.code||'').trim()}`;if(!s.code||!seen.has(k)){seen.set(k,s.id);return true}subjectRemap.set(String(s.id),seen.get(k));return false});
+ for(const l of Object.values(state.lessons||{})){if(subjectRemap.has(String(l.subjectId)))l.subjectId=subjectRemap.get(String(l.subjectId));}
 })();
 function planSubjects(pid=state.activePlanId){return state.subjects.filter(s=>s.planId===pid)}
 function isActivitySubject(s){return !!s && /ลูกเสือ|กิจกรรมองค์การวิชาชีพ|กิจกรรม/i.test(String(s.name||''))}
 function groupsForPlan(p=plan()){return state.groups.filter(g=>g.level===p.level&&String(g.year)===String(p.year))}
 function group(){return state.groups.find(x=>x.id===state.currentGroupId)||state.groups[0]}
-function subject(id){return state.subjects.find(x=>x.id===id)}
-function teacher(id){return state.teachers.find(x=>x.id===id)}
-function room(id){return state.rooms.find(x=>x.id===id)}
+function subject(id){return state.subjects.find(x=>String(x.id)===String(id))}
+function teacher(id){return state.teachers.find(x=>String(x.id)===String(id))}
+function room(id){return state.rooms.find(x=>String(x.id)===String(id))}
 function key(gid,d,p){return `${state.activePlanId}|${gid}|${d}|${p}`}
 function parseKey(k){let [pid,gid,d,p]=k.split('|');return {pid,gid,d:+d,p:+p}}
 function isBlocked(g,d,p){return p===5}
@@ -651,7 +652,7 @@ function renderPreview(mode=window.previewMode||'student'){
      }else{
        let arr=teacherLessonAt(tid,di,p);
        content=arr.map(l=>lessonHtml(l,true)).join('<hr>');
-       if(arr.length===1){let l=arr[0];sig=`T|${l.subjectId}|${l.roomId||''}|${l.groupId||''}`}
+       if(arr.length===1){let l=arr[0];sig=`T|${l.subjectId}|${l.roomId||''}|${(l.groupIds||[l.groupId]).slice().sort().join(',')}`}
      }
      let span=1;
      if(sig){
@@ -663,7 +664,7 @@ function renderPreview(mode=window.previewMode||'student'){
            if(nl)nextSig=`S|${nl.subjectId}|${nl.roomId||''}|${nl.teacherId||''}`;
          }else{
            let na=teacherLessonAt(tid,di,q);
-           if(na.length===1){let nl=na[0];nextSig=`T|${nl.subjectId}|${nl.roomId||''}|${nl.groupId||''}`}
+           if(na.length===1){let nl=na[0];nextSig=`T|${nl.subjectId}|${nl.roomId||''}|${(nl.groupIds||[nl.groupId]).slice().sort().join(',')}`}
          }
          if(nextSig!==sig)break;
          span++;
@@ -674,8 +675,8 @@ function renderPreview(mode=window.previewMode||'student'){
    }
    sched+=`<tr><th class="pdf-day">วัน${d}</th>${di===0?'<td class="assembly-cell assembly-merged" rowspan="5">กิจกรรมหน้าเสาธง</td>':''}${cells}</tr>`
  });
- let subs=mode==='student'?planSubjects():state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
- const courseCells=x=>x?`<td class="course-code">${esc(x.code)}</td><td class="course-name" colspan="4">${esc(x.name)}</td><td class="course-num">${x.t}</td><td class="course-num">${x.p}</td><td class="course-num">${x.n}</td><td class="course-num">${x.t+x.p}</td>`:`<td class="course-code"></td><td class="course-name" colspan="4"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td>`;const sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP,courseRows=Math.max(10,Math.ceil((subs.length+1)/2)),coursePrintRow=64/(courseRows+1);let course='';for(let i=0;i<courseRows;i++){let right=i===courseRows-1?`<td class="total-label" colspan="5">รวม</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td>`:courseCells(subs[courseRows+i]);course+=`<tr>${courseCells(subs[i])}${right}</tr>`}
+ let subs=mode==='student'?planSubjects():state.subjects.filter(s=>(window.teacherTermEntries115?teacherTermEntries115():Object.entries(state.lessons)).some(([k,l])=>String(l.subjectId)===String(s.id)&&String(l.teacherId)===String(tid)));
+ const courseCells=x=>x?`<td class="course-code">${esc(x.code)}</td><td class="course-name" colspan="4">${esc(x.name)}</td><td class="course-num">${x.t}</td><td class="course-num">${x.p}</td><td class="course-num">${x.n}</td><td class="course-num">${Number(x.t||0)+Number(x.p||0)}</td>`:`<td class="course-code"></td><td class="course-name" colspan="4"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td><td class="course-num"></td>`;const sumT=subs.reduce((a,x)=>a+Number(x.t||0),0),sumP=subs.reduce((a,x)=>a+Number(x.p||0),0),sumN=subs.reduce((a,x)=>a+Number(x.n||0),0),sumH=sumT+sumP,courseRows=Math.max(10,Math.ceil((subs.length+1)/2)),coursePrintRow=64/(courseRows+1);let course='';for(let i=0;i<courseRows;i++){let right=i===courseRows-1?`<td class="total-label" colspan="5">รวม</td><td>${sumT}</td><td>${sumP}</td><td>${sumN}</td><td>${sumH}</td>`:courseCells(subs[courseRows+i]);course+=`<tr>${courseCells(subs[i])}${right}</tr>`}
  let extra=mode==='student'?`<div>รหัสกลุ่มเรียน ${esc(g.groupCode||'-')}</div><div>ครูที่ปรึกษา ${esc(g.advisor||'-')}</div>`:`<div>วุฒิการศึกษา ${esc(t?.qualification||'-')}</div><div>หน้าที่พิเศษ ${esc(t?.specialDuty||(t?.special?'มีหน้าที่พิเศษ':'-'))}</div>`;
  preview.innerHTML=`<div class="excel-sheet"><div class="excel-top"><div class="excel-identity"><img class="excel-logo-img" src="image1.png"><div class="excel-info"><div>วิทยาลัยเทคนิคปากช่อง</div><div>ภาคเรียน ${esc(plan().term)}</div><div>${mode==='student'?'ชั้นเรียน':'ผู้สอน'} ${esc(who)}</div>${extra}<div>แผนกวิชา ช่างไฟฟ้ากำลัง</div></div></div><table class="excel-courses" style="--course-print-row:${coursePrintRow}mm"><colgroup>${[0,1].map(()=>`<col class="course-code-col"><col class="course-name-col"><col class="course-name-col"><col class="course-name-col"><col class="course-name-col"><col class="course-num-col"><col class="course-num-col"><col class="course-num-col"><col class="course-num-col">`).join('')}</colgroup><tr><th class="course-code-head">รหัสวิชา</th><th class="course-name-head" colspan="4">ชื่อรายวิชา</th><th class="course-num-head">ท.</th><th class="course-num-head">ป.</th><th class="course-num-head">น.</th><th class="course-num-head">ช.</th><th class="course-code-head">รหัสวิชา</th><th class="course-name-head" colspan="4">ชื่อรายวิชา</th><th class="course-num-head">ท.</th><th class="course-num-head">ป.</th><th class="course-num-head">น.</th><th class="course-num-head">ช.</th></tr>${course}</table></div><table class="excel-schedule pdf-fixed"><colgroup><col class="col-day"><col class="col-assembly">${Array.from({length:12},()=>'<col class="col-period">').join('')}</colgroup><tr><th>เวลา</th><th class="assembly-time">07:45-08:00</th>${periodTimes.map(t=>`<th class="period-time-head">${t}</th>`).join('')}</tr><tr><th>วัน/คาบ</th><th class="assembly-blank"></th>${Array.from({length:12},(_,i)=>`<th>${i+1}</th>`).join('')}</tr>${sched}</table>${signatureHtml()}</div>`;
 }
@@ -698,7 +699,7 @@ async function exportExcel(){
  ws.mergeCells('A6:C6');ws.getCell('A6').value='แผนกวิชา ช่างไฟฟ้ากำลัง';
  for(let r=2;r<=6;r++){ws.getCell(r,1).font=font;ws.getCell(r,1).alignment=left}
  // Course table D1:N8: two compact blocks, 8 slots each
- let subs=mode==='student'?planSubjects():state.subjects.filter(s=>Object.values(state.lessons).some(l=>l.subjectId===s.id&&l.teacherId===tid));
+ let subs=mode==='student'?planSubjects():state.subjects.filter(s=>(window.teacherTermEntries115?teacherTermEntries115():Object.entries(state.lessons)).some(([k,l])=>String(l.subjectId)===String(s.id)&&String(l.teacherId)===String(tid)));
  // compact each side uses code,name,T,P,N,H => 6 cols; fit two blocks in D:N by sharing 11 cols (second name narrower)
  const courseRows=[]; for(let i=0;i<8;i++)courseRows.push([subs[i],subs[i+8]]);
  const putBlock=(row,col,x)=>{if(!x)return; ws.getCell(row,col).value=x.code;ws.getCell(row,col+1).value=x.name;ws.getCell(row,col+2).value=x.t;ws.getCell(row,col+3).value=x.p;ws.getCell(row,col+4).value=x.n;ws.getCell(row,col+5).value=x.t+x.p};
@@ -1445,7 +1446,7 @@ function render(){const box=$('bkSubjectTeacherList');if(!box)return;const ss=su
    const s=lessonSubject(l);if(s){s.teacherId=nt.id;s.roomId=nr.id}
    if(typeof save==='function')save();renderAll();
  }
- const oldRenderAll=window.renderAll; window.renderAll=function(){oldRenderAll();setTimeout(()=>{syncSubjectAssignment();addEditButtons();const btn=byId('runScheduleAnalysisBtn'),g=typeof group==='function'?group():null;if(btn&&g){const pending=(typeof subjectsForCurrentGroup==='function'?subjectsForCurrentGroup():planSubjects()).some(s=>{const need=Number(s.t||0)+Number(s.p||0);let n=0;for(const [k,l] of activeLessons()){const q=parseKey(k);if(same(q.gid,g.id)&&same(l.subjectId,s.id))n++}return n<need});btn.disabled=!pending;btn.textContent=pending?'วิเคราะห์หาช่องลงตาราง':'จัดรายวิชาครบแล้ว'}} ,0)};
+ const oldRenderAll=window.renderAll; window.renderAll=function(){oldRenderAll();setTimeout(()=>{syncSubjectAssignment();addEditButtons();const btn=byId('runScheduleAnalysisBtn'),g=typeof group==='function'?group():null;if(btn&&g){const pending=(typeof subjectsForCurrentGroup==='function'?subjectsForCurrentGroup():planSubjects()).some(s=>{const need=Number(s.t||0)+Number(s.p||0);let n=0;for(const [k,l] of activeLessons()){const q=parseKey(k);if(same(q.gid,g.id)&&same(l.subjectId,s.id))n++}return n<need});btn.disabled=false;btn.textContent='ตรวจและวิเคราะห์ตาราง'}} ,0)};
 
  const style=document.createElement('style');style.textContent=`.v114-edit{display:block;margin:4px auto 0;padding:2px 5px;border:1px solid #94a3b8;border-radius:6px;background:#fff;font:inherit;font-size:10px;cursor:pointer}.v114-edit:hover{background:#f1f5f9}`;document.head.appendChild(style);
  setTimeout(()=>{syncSubjectAssignment();addEditButtons();},100);
@@ -2084,7 +2085,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         // หา source ที่ขนาดตรงกับปลายทางและย้ายได้จริงอีกครั้ง เพื่อไม่จับก้อนผิด
         let source=null;
         for(const cand of blocks){const d=lessonCanMove(g.id,s,cand.keys,best.d,best.start);if(d&&d.join('|')===best.dest.join('|')){source=cand;break}}
-        if(source)suggestions.push({type:'move',b:source,best,s,priority:1});
+        if(source&&window.validateSmartProposal({blocking:[source],moves:[best],pl:{parts:[]}}, {...s,teacherId:source.l.teacherId,roomId:source.l.roomId},g.id))suggestions.push({type:'move',b:source,best,s,priority:1});
         continue;
       }
       // PRIORITY 2: ถ้ารวมวันเดียวไม่ได้ ให้แนะนำรูปแบบการซอยตาม ท/ป เท่านั้น ไม่เสนอการย้ายมั่ว
@@ -2112,7 +2113,8 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         if(ignore.has(ok))continue; const q=parseKey(ok);
         if(q.pid!==state.activePlanId||q.d!==d||q.p!==p)continue;
         if(q.gid===gid)return false;
-        if(lesson.teacherId&&ol.teacherId===lesson.teacherId)return false;
+        if(lesson.teacherId&&String(ol.teacherId)===String(lesson.teacherId))return false;
+        if(lesson.roomId&&String(ol.roomId)===String(lesson.roomId))return false;
       }
       return true;
     }
@@ -2137,6 +2139,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
       for(let d=0;d<5;d++){
         const startsByPart=parts.map(len=>Array.from({length:13-len},(_,i)=>i+1).filter(st=>Array.from({length:len},(_,j)=>st+j).every(p=>validPeriod(d,p,s))));
         const walk=(i,chosen,usedP)=>{
+          if(out.length>=600)return;
           if(i===parts.length){out.push({d,parts:chosen.map((st,j)=>({start:st,len:parts[j],keys:Array.from({length:parts[j]},(_,x)=>key(gid,d,st+x))}))});return}
           for(const st of startsByPart[i]){const ps=Array.from({length:parts[i]},(_,x)=>st+x);if(ps.some(p=>usedP.has(p)))continue;const nu=new Set(usedP);ps.forEach(p=>nu.add(p));walk(i+1,[...chosen,st],nu)}
         }; walk(0,[],new Set());
@@ -2154,14 +2157,14 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         if(blocking.some(b=>{const bs=subject(b.l.subjectId);return !bs||isActivitySubject(bs)}))continue;
         const options=blocking.map(b=>relocateOptionsV113(b,reserved)); if(options.some(x=>!x.length))continue;
         for(const o1 of options[0]){
-          if(blocking.length===1){plans.push({pl,blocking,moves:[o1],score:20000+o1.score});break}
+          if(blocking.length===1){if(!window.validateSmartProposal({pl,blocking,moves:[o1]},s,gid))continue;plans.push({pl,blocking,moves:[o1],score:20000+o1.score});break}
           for(const o2 of options[1]){
             const d1=new Set(o1.dest); if(o2.dest.some(k=>d1.has(k)))continue;
             // ถ้าปลายทางสองก้อนเป็นคาบเดียวกัน ให้ตรวจครูของสองก้อนด้วย
             let clash=false;
             for(let i=0;i<o1.dest.length;i++)for(let j=0;j<o2.dest.length;j++)if(o1.dest[i]===o2.dest[j])clash=true;
             if(clash)continue;
-            plans.push({pl,blocking,moves:[o1,o2],score:19000+o1.score+o2.score});break
+            if(!window.validateSmartProposal({pl,blocking,moves:[o1,o2]},s,gid))continue;plans.push({pl,blocking,moves:[o1,o2],score:19000+o1.score+o2.score});break
           }
           if(plans.length)break;
         }
@@ -2184,7 +2187,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
 
     suggestions.sort((a,b)=>a.priority-b.priority||((b.best?.gain||0)-(a.best?.gain||0)));
     window.__smartSuggestions=suggestions;
-    if(!suggestions.length){list.innerHTML='<div class="opt-good">ตารางห้องนี้เป็นไปตามหลักแล้ว: วิชายาวอยู่วันเดียวกันเท่าที่จัดได้ (เช้า–บ่ายได้) และถ้าจำเป็นต้องแยกจึงใช้สัดส่วนชั่วโมง ท/ป โดยแต่ละก้อนต่อเนื่องกัน</div>';return}
+    if(!suggestions.length){list.innerHTML='<div class="opt-good">ไม่พบแผนย้ายในขอบเขตการค้นหาครั้งนี้ (ย้ายไม่เกิน 2 ก้อน) ไม่ได้หมายความว่าตารางสมบูรณ์หรือไม่มีทางจัดอื่น โปรดดูผลตรวจข้อมูลและคาบที่ยังขาดด้านบน</div>';return}
     list.innerHTML=suggestions.slice(0,6).map((x,i)=>{
       if(x.type==='cross'){
         const mv=x.plan.blocking.map((b,j)=>{const o=x.plan.moves[j],bs=subject(b.l.subjectId),gg=groupsForPlan().find(z=>z.id===b.gid);return `${esc(bs?.code||'')} ${esc(bs?.name||'')} (${esc(gg?.name||gg?.code||'')}) : ${dayNames[b.d]} ${b.start}${b.keys.length>1?'–'+(b.start+b.keys.length-1):''} → ${dayNames[o.d]} ${o.start}${b.keys.length>1?'–'+(o.start+b.keys.length-1):''}`}).join('<br>');
@@ -2200,6 +2203,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         const lines=x.plan.blocking.map((b,j)=>{const o=x.plan.moves[j],bs=subject(b.l.subjectId),gg=groupsForPlan().find(z=>z.id===b.gid);return `• ${bs?.code||''} ${bs?.name||''} (${gg?.name||gg?.code||''})\n  ${dayNames[b.d]} คาบ ${b.start}${b.keys.length>1?'–'+(b.start+b.keys.length-1):''} → ${dayNames[o.d]} คาบ ${o.start}${b.keys.length>1?'–'+(o.start+b.keys.length-1):''}`}).join('\n');
         const tgt=x.plan.pl.parts.map(z=>`${dayNames[x.plan.pl.d]} คาบ ${z.start}${z.len>1?'–'+(z.start+z.len-1):''}`).join(' + ');
         const ok=window.confirm(`แผนสลับเพื่อเปิดช่องให้ ${x.gname}\n${x.s.code} ${x.s.name} เหลือ ${x.need} ชั่วโมง\n\n${lines}\n\nจากนั้นลงวิชาที่เหลือที่: ${tgt}\n\nระบบจะย้ายทั้งก้อนและตรวจไม่ให้ครู/กลุ่มเรียนชน กด ตกลง เพื่อใช้แผนนี้`);if(!ok)return;
+        if(!window.validateSmartProposal(x.plan,x.s,x.gid)){alert('ข้อมูลตารางเปลี่ยนหรือแผนนี้มีการชน กรุณาวิเคราะห์ใหม่');return}
         const before={};
         x.plan.blocking.forEach((b,j)=>{b.keys.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);x.plan.moves[j].dest.forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null)});
         x.plan.pl.parts.flatMap(z=>z.keys).forEach(k=>before[k]=state.lessons[k]?{...state.lessons[k]}:null);
@@ -2212,6 +2216,7 @@ const _renderAllSign=renderAll;renderAll=function(){_renderAllSign();renderSigne
         window.__lastSmartMove={before,label:`แผนสลับ ${x.s.code} ${x.s.name}`};saveLocal();renderAll();return;
       }
       if(x.type!=='move')return;
+      if(!window.validateSmartProposal({blocking:[x.b],moves:[x.best],pl:{parts:[]}}, {...x.s,teacherId:x.b.l.teacherId,roomId:x.b.l.roomId},x.b.gid)){alert('แผนย้ายนี้ใช้ไม่ได้กับข้อมูลปัจจุบัน กรุณาวิเคราะห์ใหม่');return}
       const from=`${dayNames[x.b.d]} คาบ ${x.b.start}${x.b.keys.length>1?'–'+(x.b.start+x.b.keys.length-1):''}`;
       const to=`${dayNames[x.best.d]} คาบ ${x.best.start}${x.b.keys.length>1?'–'+(x.best.start+x.b.keys.length-1):''}`;
       const ok=window.confirm(`ตรวจสอบคำแนะนำก่อนย้าย\n\n${x.s.code} ${x.s.name}\nจาก: ${from}\nไป: ${to}\n\nเหตุผล: รวมวิชาเดียวกันที่เป็นวิชายาวให้อยู่วันเดียวกัน (เช้า–บ่ายได้)\n\nกด ตกลง เพื่อย้ายจริง`);if(!ok)return;
@@ -2985,3 +2990,6 @@ const boot=()=>{ensure();document.querySelector('[data-page="bookPage"]')?.addEv
 }
 </style>
 <link rel="stylesheet" href="schedule-layout.css?v=114">
+
+<link rel="stylesheet" href="app-v115.css">
+<script src="app-v115.js"></script>

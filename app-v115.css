@@ -1,0 +1,48 @@
+/* Screen-only app styling never changes document typography or paper geometry. */
+@media screen{
+ :root{--primary:#2563eb;--accent:#0d9488}
+ body{background:#f2f6fc!important;color:#18324f}
+ header{background:linear-gradient(115deg,#1649a5,#2675e8 65%,#13a9ab)!important;box-shadow:0 6px 24px #2563eb18;padding:22px 26px!important}
+ nav{background:#fff!important;border-right:1px solid #e0e9f5;box-shadow:4px 0 24px #234a7808;padding:18px 12px!important}
+ nav button{color:#47617b!important;background:transparent!important;border:0!important;border-radius:12px!important;margin:4px 0!important;min-height:48px;font-weight:600!important;text-align:left}
+ nav button.active{color:#fff!important;background:linear-gradient(110deg,#2563eb,#268bdf)!important;box-shadow:0 5px 12px #2563eb25}
+ main{padding:24px!important}
+ .card{border:1px solid #e1e9f4!important;border-radius:20px!important;box-shadow:0 5px 24px #294e7908!important;padding:22px!important}
+ h2{color:#173e69;font-size:21px!important;margin-top:0}
+ .btn{border-radius:11px!important;min-height:42px;padding:10px 16px!important;transition:background .15s,box-shadow .15s}
+ .btn.primary{background:#2563eb!important;color:white!important;box-shadow:0 3px 9px #2563eb20}
+ .btn.ok{background:#0d9488!important}.btn.light{background:#eef5ff!important;color:#24579a!important;border:1px solid #cddff4!important}
+ .btn.danger{background:#fff0f2!important;color:#be2444!important;border:1px solid #f7cad4!important}
+ input,select,textarea{border-radius:10px!important;border:1px solid #cddbec!important;min-height:44px;background:#fff}
+ input:focus,select:focus,textarea:focus{outline:3px solid #bfdbfe;outline-offset:1px}
+ .notice{border-radius:12px!important}.actions{gap:10px!important;flex-wrap:wrap}
+ #lessonEditor115{border-left:5px solid #12a69a!important;scroll-margin-top:20px}
+ #smartOptimizerBox{background:#eff7ff!important;border-color:#bfdbfe!important}
+ #studentTable,#teacherTable{overflow:auto!important;padding:14px!important}
+ #studentTable .slot{position:relative;vertical-align:top!important;height:auto!important;min-height:100px;overflow:visible!important;padding:8px 4px!important}
+ #studentTable .lesson{height:auto!important;min-height:55px;overflow:visible!important}
+ .v114-edit{position:static!important;font-size:12px!important;background:#e9f2ff!important;color:#1d4ed8!important;min-height:32px;white-space:nowrap}
+ .schedule-paper{min-width:1040px}.table-summary{background:#edf6ff!important;border-color:#d7e7f8!important}
+ @media(max-width:1099px){
+  header{padding:18px!important}header h1{font-size:20px!important}
+  .app{display:block!important}main{margin:0!important;width:100%!important;padding:12px!important}
+  nav{position:relative!important;display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:7px;padding:9px 12px!important;width:100%!important;min-height:0!important}
+  nav button{flex:0 0 auto!important;padding:10px 14px!important;font-size:13px!important;min-height:44px;margin:0!important;white-space:nowrap}
+  nav button[hidden]{display:none!important}
+  .card{padding:16px!important;border-radius:16px!important}.grid,.grid3,.grid4{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ }
+ @media(max-width:600px){.grid,.grid3,.grid4{grid-template-columns:1fr!important}input,select,textarea{font-size:16px!important}header .badge{display:none!important}.actions .btn{flex:1 1 auto}#lessonEditor115 h2{font-size:19px!important}}
+}
+@media print{#lessonEditor115,#analysisAudit115,.v114-edit{display:none!important}}
+@font-face{font-family:CollegeApp;src:url('fonts/AppNotoSansThai.ttf') format('truetype');font-weight:100 900;font-display:swap}
+@media screen{
+ body,nav button,header,.cloudbar,.btn,input,select,textarea{font-family:CollegeApp,Arial,sans-serif!important}
+ body{font-size:15px!important}main{background:transparent!important}header h1{font-size:22px!important}
+ .muted,label,.notice,.opt-sub{font-size:13px!important;line-height:1.6}
+ .btn,nav button{font-size:14px!important}input,select,textarea{font-size:15px!important}
+ .cloudbar{position:relative!important;bottom:auto!important;right:auto!important;left:auto!important;max-width:none!important;margin:12px!important;box-shadow:none!important}
+ .print-title{display:none!important}nav button[hidden]{display:none!important}
+ @media(min-width:1100px){nav{padding-top:24px!important}.cloudbar{margin-left:242px!important}}
+ @media(max-width:600px){header{position:relative!important}header h1{font-size:18px!important}header .tag{display:none!important}input,select,textarea{font-size:16px!important}nav button{width:auto!important}}
+}
+@media screen and (max-width:1099px){nav button{min-width:max-content!important;max-width:none!important;width:auto!important;flex:0 0 auto!important}nav{justify-content:flex-start!important}}
